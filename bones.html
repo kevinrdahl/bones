@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Bones</title>
+        <style>
+        	html,body {
+    			height:100%;
+    			padding:0;
+    			margin:0;
+    			overflow-x:hidden;
+    			overflow-y:hidden;
+    			font-size:small;
+			}
+			#inputdiv {
+				width:300px;
+				height:100%;
+				border-right:1px solid black;
+				position:fixed;
+				x:0;
+				y:0;
+			}
+			#displayouter {
+				margin:0;
+				padding:0;
+				width:calc(100% - 300px);
+				height:100%;
+				overflow-x:hidden;
+				overflow-y:hidden;
+				float:right;
+			}
+			#display {
+				margin:0;
+				padding:0;
+			}
+        </style>
+    </head>
+    <body>
+    	<div id="inputdiv">
+    		<form name="inputform" action="" method="GET">
+				<input type="text" name="stuff" value=""><br>
+				<br>
+				<input type="button" value="input" onClick="input(this.form)">
+			</form>
+    	</div>
+
+        <div id="displayouter">
+        	<canvas id="display" width=800 height=600></canvas>
+        </div>
+
+		<script src="http://kevinstuff.net/script/LinAlg.js"></script>
+		<script src="bones.js"></script>
+    </body>
+</html>
