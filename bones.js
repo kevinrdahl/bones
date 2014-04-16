@@ -164,16 +164,29 @@ function drawFrame() {
 	}
 
 	context.strokeStyle = '#000000';
-	context.beginPath()
-	for (name in bones) {
+	
+	for (name in bones) {	
 		var bone = bones[name];
+		
+		context.beginPath()	
 		context.moveTo(bone.coords[0], bone.coords[1]);
 		context.lineTo(bone.endcoords[0], bone.endcoords[1]);
+		context.stroke();
+		
+		context.beginPath()	
+		context.arc(bone.endcoords[0], bone.endcoords[1], 3, 0, 2*Math.PI);
+		context.stroke();
+		
+		if (bone.parent == null) {
+			context.beginPath()	
+			context.arc(bone.coords[0], bone.coords[1], 3, 0, 2*Math.PI);
+			context.stroke();
+		}
 	}
-	context.stroke();
 }
 
 function poseBones(bone, parentAngle) {
+	bone.angle++;
 	bone.endcoords = LinAlg.pointOffset(bone.coords, bone.angle+parentAngle, bone.len);
 	for (var i = 0; i < bone.children.length; i++) {
 		var child = bones[bone.children[i]];
