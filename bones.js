@@ -122,11 +122,28 @@ function input(form) {
 /*=======
 ANIMATION
 =======*/
+var origin = [300,300];
+var skeletonAngle = 0;
+
 var bones = {
-	bone0:newBone([200,300],270,100,null,['bone1','bone2']),
-	bone1:newBone(null,90,100,'bone0',['bone3']),
-	bone2:newBone(null,270,100,'bone0',[]),
-	bone3:newBone(null,90,50,'bone1',[])
+	chest:newBone(270,150,null,['head','shoulderleft','shoulderright'],false),
+	head:newBone(270,50,'chest',[],false),
+	
+	legleft1:newBone(110,80,null,['legleft2'],false),
+	legleft2:newBone(95,80,'legleft1',['footleft'],false),
+	footleft:newBone(180,20,'legleft2',[],false),
+	
+	legright1:newBone(70,80,null,['legright2'],false),
+	legright2:newBone(85,80,'legright1',['footright'],false),
+	footright:newBone(0,20,'legright2',[],false),
+	
+	shoulderleft:newBone(160,45,'chest',['armleft1'],false),
+	armleft1:newBone(100,70,'shoulderleft',['armleft2'],false),
+	armleft2:newBone(90,65,'armleft1',[],false),
+	
+	shoulderright:newBone(20,45,'chest',['armright1'],false),
+	armright1:newBone(80,70,'shoulderright',['armright2'],false),
+	armright2:newBone(90,65,'armright1',[],false)
 };
 
 var keyframes = {
@@ -156,10 +173,13 @@ function setTick() {
 
 function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
+	
+	//skeletonAngle = (skeletonAngle + 1) % 360;
 
 	for (name in bones) {
 		if (bones[name].parent == null) {
-			poseBones(bones[name],0);
+			bones[name].coords = origin;
+			poseBones(bones[name]);
 		}
 	}
 
@@ -185,18 +205,22 @@ function drawFrame() {
 	}
 }
 
-function poseBones(bone, parentAngle) {
-	bone.angle++;
-	bone.endcoords = LinAlg.pointOffset(bone.coords, bone.angle+parentAngle, bone.len);
+function poseBones(bone) {
+	var angle = bone.angle+skeletonAngle;
+	if (bone.rigid) {
+		angle += bones[bone.parent].angle;
+	}
+	
+	bone.endcoords = LinAlg.pointOffset(bone.coords, angle, bone.len);
 	for (var i = 0; i < bone.children.length; i++) {
 		var child = bones[bone.children[i]];
 		child.coords = bone.endcoords;
-		poseBones(child,bone.angle+parentAngle);
+		poseBones(child);
 	}
 }
 
-function newBone(coords, angle, len, parent, children) {
-	return {coords:coords, angle:angle, len:len, parent:parent, children:children};
+function newBone(angle, len, parent, children, rigid) {
+	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid};
 }
 
 function setCanvasSize() {
