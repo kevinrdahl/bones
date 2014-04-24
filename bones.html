@@ -17,6 +17,7 @@
 				height:100%;
 				border-right:1px solid black;
 				position:fixed;
+				overflow-y:scroll;
 				x:0;
 				y:0;
 			}
@@ -42,6 +43,13 @@
 				<br>
 				<input type="button" value="input" onClick="input(this.form)">
 			</form>
+			<br>
+			<b>Tools</b><br>
+			<input type="button" value="Angle" onClick="setTool('angle')"><br>
+			<input type="button" value="Position" onClick="setTool('position')"><br>
+			<input type="button" value="Length" onClick="setTool('length')"><br>
+			<input type="button" value="Delete" onClick="setTool('delete')"><br>
+			<input type="button" value="Add" onClick="setTool('add')"><br>
     	</div>
 
         <div id="displayouter">

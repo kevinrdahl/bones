@@ -62,69 +62,125 @@ for (key in keys) {
 }
 
 var MOUSE_DRAG_MIN = 2;
-var mouseIsDown = false;
-var mouseDragging = false;
+var leftMouseIsDown = false;
+var leftMouseDownCoords = [-1.-1];
+var leftMouseDragging = false;
 canvas.addEventListener('mousedown', onMouseDown, false);
 canvas.addEventListener('mouseup', onMouseUp, false);
 canvas.addEventListener('mousemove', onMouseMove, false);
 canvas.addEventListener('keydown', onKeyDown, false);
 canvas.addEventListener('keyup', onKeyUp, false);
 
-function onMouseDown(e) {
-	fixWhich(e);
-	
+function getMouseCoords (e) {
 	var canvasX = canvas.offsetLeft;
 	var canvasY = canvas.offsetTop;
-	
 	var x = e.clientX - canvasX;
 	var y = e.clientY - canvasY;
+	return [x,y];
+}
+
+function onMouseDown(e) {
+	fixWhich(e);
+	var mouseCoords = getMouseCoords(e);
 	
 	if (e.which == 1) {
 		//left mouse
-		mouseDownCoords = [x,y];
-		mouseIsDown = true;
+		leftMouseDownCoords = mouseCoords;
+		leftMouseIsDown = true;
+		leftClickDown(mouseCoords);
 	}
 }
 
 function onMouseUp(e) {
 	fixWhich(e);
+	var mouseCoords = getMouseCoords(e);
 	
 	if (e.which == 1) {
 		//left mouse up
-		if (mouseDragging) {
-			leftClickDrag();
-		} else {
-			leftClick();
-		}
-		mouseIsDown = false;
-		mouseDragging = false;
+		leftClickUp(mouseCoords);
+		leftMouseIsDown = false;
+		leftMouseDragging = false;
 	} else if (e.which == 3) {
 		rightClick();
 	}
 }
 
 function onMouseMove (e) {
-	fixWhich(e);
-	var canvasX = canvas.offsetLeft;
-	var canvasY = canvas.offsetTop;
-	mouseCoords = [e.clientX-canvasX, e.clientY-canvasY];
+	mouseCoords = getMouseCoords(e);
 	
-	if (mouseIsDown) {
-		if (Math.abs(mouseCoords[0]-mouseDownCoords[0]) > MOUSE_DRAG_MIN || Math.abs(mouseCoords[1]-mouseDownCoords[1]) > MOUSE_DRAG_MIN) {
-			mouseDragging = true;
+	if (leftMouseIsDown) {
+		if (Math.abs(mouseCoords[0]-leftMouseDownCoords[0]) > MOUSE_DRAG_MIN || Math.abs(mouseCoords[1]-leftMouseDownCoords[1]) > MOUSE_DRAG_MIN) {
+			leftMouseDragging = true;
+			leftClickMove(mouseCoords);
 		}
 	}
 }
 
-function leftClick() {
-	console.log('left click');
+function leftClickDown (mouseCoords) {
+	for (name in bones) {
+		var bone = bones[name];
+		if (LinAlg.pointDist(mouseCoords,bone.endcoords) <= 5) {
+			clickedBone = name;
+			break;
+		}
+	}
+	if (LinAlg.pointDist(mouseCoords,origin) <= 5) {
+		clickedBone = 'origin';
+	}
+
+	switch (tool) {
+		case 'add':
+			if (clickedBone != null) {
+				var name = 'bone' + boneNum++;
+				bones[name] = newBone(0,1,clickedBone,[],false,'bone.png');
+				if (clickedBone == 'origin') {
+					bones[name].coords = origin;
+				} else {
+					bones[name].coords = bones[clickedBone].endcoords;
+					bones[clickedBone].children.push(name);
+				}
+				clickedBone = name;
+			}
+			break;
+	}
 }
 
-function rightClick() {
+function leftClickUp (mouseCoords) {
+	switch (tool) {
+		case 'delete':
+			if (clickedBone != null && LinAlg.pointDist(mouseCoords,leftMouseDownCoords) <= MOUSE_DRAG_MIN) {
+				deleteBone(clickedBone);
+			}
+	}
+
+	clickedBone = null;
+}
+
+function leftClickMove (mouseCoords) {
+	switch(tool) {
+		case 'angle':
+			if (clickedBone == 'origin') {
+				origin = mouseCoords;
+			} else if (clickedBone != null) {
+				var bone = bones[clickedBone];
+				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords);
+			}
+			break;
+		case 'add':
+			if (clickedBone != null) {
+				var bone = bones[clickedBone];
+				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords);
+				bone.len = LinAlg.pointDist(bone.coords,mouseCoords);
+			}
+	}
+	
+}
+
+function rightClick () {
 	console.log('right click');
 }
 
-function leftClickDrag() {
+function leftClickDrag () {
 	console.log('left click drag');
 }
 
@@ -153,16 +209,19 @@ ANIMATION
 =======*/
 var origin = [300,300];
 var skeletonAngle = 0;
+var clickedBone = null;
+var tool = 'angle';
+var boneNum = 0;
 
 var bones = {
-	chest:newBone(270,150,null,['head','shoulderleft','shoulderright'],false,'bone.png'),
+	chest:newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false,'bone.png'),
 	head:newBone(270,50,'chest',[],false,'bone.png'),
 	
-	legleft1:newBone(110,80,null,['legleft2'],false,'bone.png'),
+	legleft1:newBone(110,80,'origin',['legleft2'],false,'bone.png'),
 	legleft2:newBone(95,80,'legleft1',['footleft'],false,'bone.png'),
 	footleft:newBone(180,20,'legleft2',[],false,'bone.png'),
 	
-	legright1:newBone(70,80,null,['legright2'],false,'bone.png'),
+	legright1:newBone(70,80,'origin',['legright2'],false,'bone.png'),
 	legright2:newBone(85,80,'legright1',['footright'],false,'bone.png'),
 	footright:newBone(0,20,'legright2',[],false,'bone.png'),
 	
@@ -175,8 +234,11 @@ var bones = {
 	armright2:newBone(90,65,'armright1',[],false,'bone.png')
 };
 
-var keyframes = {
-	bone0:[{frame:0, angle:270}, {frame:30, angle:0}]
+function setTool(which) {
+	clickedBone = null; //probably not needed but who knows
+	tool = which;
+
+	console.log(which);
 }
 
 var frame = 0;
@@ -201,7 +263,7 @@ function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
 
 	for (name in bones) {
-		if (bones[name].parent == null) {
+		if (bones[name].parent == 'origin') {
 			bones[name].coords = origin;
 			poseBones(bones[name]);
 		}
@@ -212,6 +274,10 @@ function drawFrame() {
 	for (name in bones) {
 		drawBone(bones[name]);
 	}
+	context.strokeStyle = '#FF0000';
+	context.beginPath()	
+	context.arc(origin[0], origin[1], 3, 0, 2*Math.PI);
+	context.stroke();
 }
 
 //poses the specified bone and then recursively poses its children, if it has any
@@ -249,16 +315,34 @@ function drawBone(bone) {
 	context.beginPath()	
 	context.arc(bone.endcoords[0], bone.endcoords[1], 3, 0, 2*Math.PI);
 	context.stroke();
-	
-	if (bone.parent == null) {
-		context.beginPath()	
-		context.arc(bone.coords[0], bone.coords[1], 3, 0, 2*Math.PI);
-		context.stroke();
-	}
 }
 
 function newBone(angle, len, parent, children, rigid, image) {
-	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image};
+	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image, transforms:{rotation:[]}};
+}
+
+function setBoneParent(bonename, parentname) {
+	if (bone.parent != null) {
+		delete bones[bone.parent].children[bonename];	
+	}
+	var bone = bones[bonename];
+	var parent = bones[parentname];
+	
+	parent.children.push(bonename);
+	bone.parent = parentname;
+}
+
+//deletes a bone, and then recursively deletes its children
+function deleteBone(name) {
+	var bone = bones[name];
+	if (bone.parent != 'origin') {
+		var parent = bones[bone.parent];
+		parent.children.splice(parent.children.indexOf(name), 1);
+	}
+	while (bone.children.length > 0) {
+		deleteBone(bone.children[0]);
+	}
+	delete bones[name];
 }
 
 //angle is degrees
