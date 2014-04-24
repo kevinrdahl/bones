@@ -5,7 +5,6 @@ var context = canvas.getContext("2d");
 var canvasWidth;
 var canvasHeight;
 setCanvasSize();
-window.onresize = setCanvasSize();
 
 var imgPrefix = 'http://kevinstuff.net/img/'; //var imgPrefix = 'img/';
 var imageList = ['bone.png'];
