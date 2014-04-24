@@ -34,22 +34,30 @@
 				margin:0;
 				padding:0;
 			}
+			.detail {
+				font-size:small;
+				font-family:monospace;
+				margin-left:12px;
+			}
         </style>
     </head>
     <body onresize="setCanvasSize()">
     	<div id="inputdiv">
-    		<form name="inputform" action="" method="GET">
-				<input type="text" name="stuff" value=""><br>
-				<br>
-				<input type="button" value="input" onClick="input(this.form)">
-			</form>
-			<br>
 			<b>Tools</b><br>
 			<input type="button" value="Angle" onClick="setTool('angle')"><br>
 			<input type="button" value="Position" onClick="setTool('position')"><br>
 			<input type="button" value="Length" onClick="setTool('length')"><br>
 			<input type="button" value="Delete" onClick="setTool('delete')"><br>
 			<input type="button" value="Add" onClick="setTool('add')"><br>
+			<input type="button" value="Edit" onClick="setTool('edit')"><br>
+			<hr>
+			<b>Bone</b><br>
+			<div id="boneinfo" class="detail"></div><br>
+			<form name="editform" action="" method="GET">
+				Name: <input type="text" name="newname" value=""><br>
+				<br>
+				<input type="button" value="Update" onClick="editBone(this.form)">
+			</form>
     	</div>
 
         <div id="displayouter">
