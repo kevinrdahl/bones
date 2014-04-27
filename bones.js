@@ -1,4 +1,4 @@
-var canvas = document.getElementById("display");
+var canvas = document.getElementById("animdisplay");
 canvas.setAttribute("tabindex", 0);
 var context = canvas.getContext("2d");
 
@@ -10,6 +10,8 @@ var imgPrefix = 'http://kevinstuff.net/img/'; //var imgPrefix = 'img/';
 var imageList = ['bone.png'];
 var images = new Object();
 var numLoaded = 0;
+
+var TICK_LEN = 33;
 
 function imageLoaded () {
 	var str = this.src.substring(imgPrefix.length);
@@ -31,15 +33,15 @@ function loadImages() {
 }
 
 function loadComplete() {
-	nextTick = new Date().getTime()+33;
+	nextTick = new Date().getTime()+TICK_LEN;
 	onTick();
 }
 
 /*======
 CONTROLS
 ======*/
-document.oncontextmenu = function () {return false;};
-document.onclick = function(e) {e.preventDefault(); e.defaultPrevented = true; e.stopPropagation(); return false;};
+canvas.oncontextmenu = function () {return false;};
+canvas.onclick = function(e) {e.preventDefault(); e.defaultPrevented = true; e.stopPropagation(); return false;};
 
 
 var keys = new Object();
@@ -116,6 +118,10 @@ function onMouseMove (e) {
 }
 
 function leftClickDown (mouseCoords) {
+	if (playAnimation) {
+		return;
+	}
+
 	for (name in bones) {
 		var bone = bones[name];
 		if (LinAlg.pointDist(mouseCoords,bone.endcoords) <= 5) {
@@ -146,6 +152,10 @@ function leftClickDown (mouseCoords) {
 }
 
 function leftClickUp (mouseCoords) {
+	if (playAnimation) {
+		return;
+	}
+
 	switch (tool) {
 		case 'delete':
 			if (clickedBone != null && clickedBone != 'origin' && LinAlg.pointDist(mouseCoords,leftMouseDownCoords) <= MOUSE_DRAG_MIN) {
@@ -165,6 +175,10 @@ function leftClickUp (mouseCoords) {
 }
 
 function leftClickMove (mouseCoords) {
+	if (playAnimation) {
+		return;
+	}
+
 	switch(tool) {
 		case 'angle':
 			if (clickedBone == 'origin') {
@@ -172,6 +186,7 @@ function leftClickMove (mouseCoords) {
 			} else if (clickedBone != null) {
 				var bone = bones[clickedBone];
 				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeletonAngle;
+				setTimeValue(currentAnimation,clickedBone,'angle',currentTime,bone.angle);
 			}
 			break;
 		case 'position':
@@ -257,12 +272,16 @@ function showBoneInfo() {
 /*=======
 ANIMATION
 =======*/
-var origin = [300,300];
+var origin = [300,250];
 var skeletonAngle = 0;
 var clickedBone = null;
 var selectedBone = null;
 var tool = 'angle';
-var boneNum = 0;
+var boneNum = 0; //simple counter for naming new bones
+var currentAnimation = 'none';
+var currentTime = 0;
+var playAnimation = false;
+var editFrame = 0;
 
 var bones = {
 	chest:newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false,'bone.png'),
@@ -284,6 +303,24 @@ var bones = {
 	armright1:newBone(80,70,'shoulderright',['armright2'],false,'bone.png'),
 	armright2:newBone(90,65,'armright1',[],false,'bone.png')
 };
+
+var animations = {
+	none:{duration:1},
+	test:{duration:1000}
+};
+
+//for every bone, set frame 0 of the "none" animation to its current angle
+//other transforms can be added later
+for (name in bones) {
+	var bone = bones[name];
+	animations['none'][name] = {angle:[[0, bone.angle]]};
+}
+
+for (name in bones) {
+	var bone = bones[name];
+	animations['test'][name] = {angle:[[0, bone.angle]]};
+}
+
 
 function setTool(which) {
 	clickedBone = null; //probably not needed but who knows
@@ -309,11 +346,16 @@ function setTick() {
 		wait = 0;
 	}
 	setTimeout(onTick,wait);
-	nextTick += 33;
+	nextTick += TICK_LEN;
 }
 
 function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
+
+	if(playAnimation) {
+		poseSkeleton();
+		setFrame(currentTime+TICK_LEN);
+	}
 
 	for (name in bones) {
 		if (bones[name].parent == 'origin') {
@@ -321,11 +363,9 @@ function drawFrame() {
 			poseBones(bones[name]);
 		}
 	}
-
-	context.strokeStyle = '#000000';
 	
 	for (name in bones) {
-		drawBone(bones[name]);
+		drawBone(name);
 	}
 	context.strokeStyle = '#FF0000';
 	context.beginPath()	
@@ -356,7 +396,9 @@ function poseBones(bone) {
 	}
 }
 
-function drawBone(bone) {
+function drawBone(namee) {
+	var bone = bones[name];
+
 	//image
 	if (bone.image != null) {
 		if (images[bone.image][0]) {
@@ -364,6 +406,12 @@ function drawBone(bone) {
 			var midpoint = LinAlg.midPoint(bone.coords,bone.endcoords);
 			drawImageRotated(image,midpoint[0],midpoint[1],bone.len,bone.len/3,bone.finalangle);
 		}
+	}
+
+	if (clickedBone == name || selectedBone == name) {
+		context.strokeStyle = '#00FF00';
+	} else {
+		context.strokeStyle = '#000000';
 	}
 
 	//wireframe
@@ -378,7 +426,7 @@ function drawBone(bone) {
 }
 
 function newBone(angle, len, parent, children, rigid, image) {
-	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image, transforms:{rotation:[]}};
+	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image};
 }
 
 function setBoneParent(bonename, parentname) {
@@ -421,6 +469,67 @@ function renameBone(name, newname) {
 	}
 }
 
+function poseSkeleton () {
+	var animation = animations[currentAnimation];
+
+	for (bonename in bones) {
+		var bone = bones[bonename];
+		for (prop in animation[bonename]) {
+			bone[prop] = getTimeValue(animation[bonename][prop], currentTime);
+		}
+	}
+}
+
+//TODO: instead of iterating over all keyframes to find prev/next, implement a modified binary search for n where n-1 <= n and n < n+1
+//given the keyframes of a property, returns the interpolated value at a specific time
+function getTimeValue(keyframes, time) {
+	if (keyframes.length == 1) {
+		return keyframes[0][1];
+	}
+	
+	var prevIndex = 0;
+	var nextIndex = 0;
+	for (var i = 0; i < keyframes.length; i++) {
+		if (keyframes[i][0] <= time) {
+			prevIndex = i;
+		} else {
+			nextIndex = i;
+			break;
+		}
+	}
+	if (nextIndex == 0) {
+		return keyframes[prevIndex][1];
+	}
+	var prevTime = keyframes[prevIndex][0];
+	var prevValue = keyframes[prevIndex][1];
+	var nextTime = keyframes[nextIndex][0];
+	var nextValue = keyframes[nextIndex][1];
+
+	var progress = (time-prevTime)/(nextTime-prevTime); // [0,1)
+	return prevValue + progress*(nextValue-prevValue); // [prevValue,nextValue)
+}
+
+function setTimeValue(animationname, bonename, property, time, value) {
+	var animation = animations[animationname];
+	var keyframes = animation[bonename][property];
+
+	var prevIndex = 0;
+	for (var i = 0; i < keyframes.length; i++) {
+		if (keyframes[i][0] <= time) {
+			prevIndex = i;
+		} else {
+			break;
+		}
+	}
+
+	if (keyframes[prevIndex][0] == time) {
+		keyframes[prevIndex][1] = value;
+	} else {
+		keyframes.splice(prevIndex+1, 0, [time,value]);
+	}
+
+}
+
 //angle is degrees
 function drawImageRotated(image, x, y, w, h, angle) { 
 	context.save();
@@ -431,13 +540,41 @@ function drawImageRotated(image, x, y, w, h, angle) {
 }
 
 function setCanvasSize() {
-	var outer = document.getElementById('displayouter');
+	var outer = document.getElementById('animdisplayouter');
 	canvasWidth = outer.clientWidth;
 	canvasHeight = outer.clientHeight;
 	canvas.width = canvasWidth;
 	canvas.height = canvasHeight;
 
-	console.log('canvas size: ' + canvasWidth + 'x' + canvasHeight);
+	//console.log('canvas size: ' + canvasWidth + 'x' + canvasHeight);
+}
+
+function UIToggleAnimation(checkbox) {
+	console.log(checkbox.checked);
+	playAnimation = checkbox.checked;
+	setFrame(editFrame);
+	document.getElementById('currentframe').readOnly = playAnimation;
+}
+
+function UISetAnimation(list) {
+	setFrame(0);
+	currentAnimation = list.options[list.selectedIndex].value;
+}
+
+function UISetFrame(field) {
+	setFrame(field.value);
+	editFrame = field.value;
+	console.log(currentTime);
+}
+
+function setFrame(frame) {
+	currentTime = frame%animations[currentAnimation].duration;
+	poseSkeleton();
+}
+
+function logDump(what) {
+	console.log(what);
+	console.log(JSON.stringify(eval(what),null,4));
 }
 
 
@@ -447,3 +584,4 @@ function setCanvasSize() {
 var nextTick;
 loadImages();
 showBoneInfo();
+context.lineWidth = 3;

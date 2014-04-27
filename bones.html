@@ -21,8 +21,7 @@
 				x:0;
 				y:0;
 			}
-			#displayouter {
-				margin:0;
+			#rightdiv {
 				padding:0;
 				width:calc(100% - 300px);
 				height:100%;
@@ -30,9 +29,20 @@
 				overflow-y:hidden;
 				float:right;
 			}
-			#display {
-				margin:0;
+			#animdisplayouter {
 				padding:0;
+				width:100%;
+				height:calc(100% - 250px);
+				overflow-x:hidden;
+				overflow-y:hidden;
+			}
+			#framedisplayouter {
+				padding:0;
+				width:100%;
+				height:250px;
+				overflow-x:scroll;
+				overflow-y:scroll;
+				border-top:1px solid black;
 			}
 			.detail {
 				font-size:small;
@@ -43,6 +53,15 @@
     </head>
     <body onresize="setCanvasSize()">
     	<div id="inputdiv">
+    		<select id="animationlist" onchange="UISetAnimation(this);">
+				<option value="none">none</option>
+				<option value="test">test</option>
+			</select><br>
+    		<label><input type='checkbox' id="animationcheckbox" onClick='UIToggleAnimation(this);'>Animate</label><br>
+    		Frame: <input type="number" id="currentframe" min="0" value="0" onchange="UISetFrame(this)"><br>
+    		<input type="button" value="JSON" onClick="logDump('animation')">
+
+    		<hr>
 			<b>Tools</b><br>
 			<input type="button" value="Angle" onClick="setTool('angle')"><br>
 			<input type="button" value="Position" onClick="setTool('position')"><br>
@@ -50,6 +69,8 @@
 			<input type="button" value="Delete" onClick="setTool('delete')"><br>
 			<input type="button" value="Add" onClick="setTool('add')"><br>
 			<input type="button" value="Edit" onClick="setTool('edit')"><br>
+			<br>
+
 			<hr>
 			<b>Bone</b><br>
 			<div id="boneinfo" class="detail"></div><br>
@@ -60,9 +81,15 @@
 			</form>
     	</div>
 
-        <div id="displayouter">
-        	<canvas id="display" width=800 height=600></canvas>
+        <div id="rightdiv">
+        	<div id="animdisplayouter">
+	        	<canvas id="animdisplay" width=100 height=100></canvas>
+	        </div>
+	        <div id="framedisplayouter">
+	        	<canvas id="framedisplay" width=100 height=100></canvas>
+	        </div>
         </div>
+
 
 		<script src="http://kevinstuff.net/script/LinAlg.js"></script>
 		<script src="bones.js"></script>
