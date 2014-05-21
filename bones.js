@@ -1,10 +1,13 @@
-var canvas = document.getElementById("animdisplay");
+var canvas = document.getElementById("display");
 canvas.setAttribute("tabindex", 0);
 var context = canvas.getContext("2d");
 
 var canvasWidth;
 var canvasHeight;
 setCanvasSize();
+
+var framecanvas = document.getElementById("framecanvas");
+var framecontext = framecanvas.getContext("2d");
 
 var imgPrefix = 'http://kevinstuff.net/img/'; //var imgPrefix = 'img/';
 var imageList = ['bone.png'];
@@ -40,84 +43,17 @@ function loadComplete() {
 /*======
 CONTROLS
 ======*/
-canvas.oncontextmenu = function () {return false;};
-canvas.onclick = function(e) {e.preventDefault(); e.defaultPrevented = true; e.stopPropagation(); return false;};
+var canvasInput = InputManager.createInputManager(canvas);
+canvasInput.leftClickDown = canvasLeftDown;
+canvasInput.leftClickUp = canvasLeftUp;
+canvasInput.leftClickMove = canvasLeftMove;
 
+var frameCanvasInput = InputManager.createInputManager(framecanvas);
+frameCanvasInput.leftClickDown = frameCanvasLeftDown;
+frameCanvasInput.leftClickUp = frameCanvasLeftUp;
+frameCanvasInput.leftClickMove = frameCanvasLeftMove;
 
-var keys = new Object();
-var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-for (var i = 0; i < 26; i++) {
-	keys[alphabet.charAt(i)] = i+65;
-}
-keys['SHIFT'] = 16;
-keys['CRTL'] = 17;
-keys['ALT'] = 18;
-keys['LEFT'] = 37;
-keys['UP'] = 38;
-keys['RIGHT'] = 39;
-keys['DOWN'] = 40;
-
-var pressed = [];
-for (key in keys) {
-	pressed[keys[key]] = false;
-}
-
-var MOUSE_DRAG_MIN = 2;
-var leftMouseIsDown = false;
-var leftMouseDownCoords = [-1.-1];
-var leftMouseDragging = false;
-canvas.addEventListener('mousedown', onMouseDown, false);
-canvas.addEventListener('mouseup', onMouseUp, false);
-canvas.addEventListener('mousemove', onMouseMove, false);
-canvas.addEventListener('keydown', onKeyDown, false);
-canvas.addEventListener('keyup', onKeyUp, false);
-
-function getMouseCoords (e) {
-	var canvasX = canvas.offsetLeft;
-	var canvasY = canvas.offsetTop;
-	var x = e.clientX - canvasX;
-	var y = e.clientY - canvasY;
-	return [x,y];
-}
-
-function onMouseDown(e) {
-	fixWhich(e);
-	var mouseCoords = getMouseCoords(e);
-	
-	if (e.which == 1) {
-		//left mouse
-		leftMouseDownCoords = mouseCoords;
-		leftMouseIsDown = true;
-		leftClickDown(mouseCoords);
-	}
-}
-
-function onMouseUp(e) {
-	fixWhich(e);
-	var mouseCoords = getMouseCoords(e);
-	
-	if (e.which == 1) {
-		//left mouse up
-		leftClickUp(mouseCoords);
-		leftMouseIsDown = false;
-		leftMouseDragging = false;
-	} else if (e.which == 3) {
-		rightClick();
-	}
-}
-
-function onMouseMove (e) {
-	mouseCoords = getMouseCoords(e);
-	
-	if (leftMouseIsDown) {
-		if (Math.abs(mouseCoords[0]-leftMouseDownCoords[0]) > MOUSE_DRAG_MIN || Math.abs(mouseCoords[1]-leftMouseDownCoords[1]) > MOUSE_DRAG_MIN) {
-			leftMouseDragging = true;
-			leftClickMove(mouseCoords);
-		}
-	}
-}
-
-function leftClickDown (mouseCoords) {
+function canvasLeftDown (mouseCoords) {
 	if (playAnimation) {
 		return;
 	}
@@ -144,6 +80,7 @@ function leftClickDown (mouseCoords) {
 					bones[name].coords = bones[clickedBone].endcoords;
 					bones[clickedBone].children.push(name);
 				}
+				addBoneAnimations(name);
 				clickedBone = name;
 			}
 			break;
@@ -151,19 +88,19 @@ function leftClickDown (mouseCoords) {
 	showBoneInfo();
 }
 
-function leftClickUp (mouseCoords) {
+function canvasLeftUp (mouseCoords) {
 	if (playAnimation) {
 		return;
 	}
 
 	switch (tool) {
 		case 'delete':
-			if (clickedBone != null && clickedBone != 'origin' && LinAlg.pointDist(mouseCoords,leftMouseDownCoords) <= MOUSE_DRAG_MIN) {
+			if (clickedBone != null && clickedBone != 'origin' && !canvasInput.leftMouseDragging) {
 				deleteBone(clickedBone);
 			}
 			break;
 		case 'edit':
-			if (clickedBone != null && clickedBone != 'origin' && LinAlg.pointDist(mouseCoords,leftMouseDownCoords) <= MOUSE_DRAG_MIN) {
+			if (clickedBone != null && clickedBone != 'origin' && !canvasInput.leftMouseDragging) {
 				selectedBone = clickedBone;
 				console.log('editing ' + clickedBone);
 			}
@@ -174,7 +111,7 @@ function leftClickUp (mouseCoords) {
 	showBoneInfo();
 }
 
-function leftClickMove (mouseCoords) {
+function canvasLeftMove (mouseCoords) {
 	if (playAnimation) {
 		return;
 	}
@@ -199,6 +136,11 @@ function leftClickMove (mouseCoords) {
 				var bone = bones[clickedBone];
 				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeletonAngle;
 				bone.len = LinAlg.pointDist(bone.coords,mouseCoords);
+				for (animationname in animations) {
+					for (property in animatedProperties) {
+						setTimeValue(animationname, clickedBone, property, 0, bone[property]);
+					}
+				}
 			}
 			break;
 		case 'length':
@@ -210,28 +152,16 @@ function leftClickMove (mouseCoords) {
 	showBoneInfo();
 }
 
-function rightClick () {
-	console.log('right click');
+function frameCanvasLeftDown (mouseCoords) {
+	console.log('down');
 }
 
-function leftClickDrag () {
-	console.log('left click drag');
+function frameCanvasLeftUp (mouseCoords) {
+	console.log('up');
 }
 
-function onKeyDown (e) {
-	pressed[e.keyCode] = true;
-}
-
-function onKeyUp (e) {
-	pressed[e.keyCode] = false;
-}
-
-function fixWhich(e) {
-  if (!e.which && e.button) {
-    if (e.button & 1) e.which = 1      // Left
-    else if (e.button & 4) e.which = 2 // Middle
-    else if (e.button & 2) e.which = 3 // Right
-  }
+function frameCanvasLeftMove (mouseCoords) {
+	console.log('move');
 }
 
 function input(form) {
@@ -282,6 +212,7 @@ var currentAnimation = 'none';
 var currentTime = 0;
 var playAnimation = false;
 var editFrame = 0;
+var animatedProperties = {'angle':0};
 
 var bones = {
 	chest:newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false,'bone.png'),
@@ -429,6 +360,18 @@ function newBone(angle, len, parent, children, rigid, image) {
 	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image};
 }
 
+function addBoneAnimations(name) {
+	var bone = bones[name];
+
+	for (animationname in animations) {
+		var animation = animations[animationname];
+		animation[name] = {};
+		for (property in animatedProperties) {
+			animation[name][property] = [[0,bone[property]]];
+		}
+	}
+}
+
 function setBoneParent(bonename, parentname) {
 	if (bone.parent != 'origin' && bone.parent != null) {
 		delete bones[bone.parent].children[bonename];	
@@ -513,6 +456,7 @@ function setTimeValue(animationname, bonename, property, time, value) {
 	var animation = animations[animationname];
 	var keyframes = animation[bonename][property];
 
+	//find where in the list of keyframes to put this one
 	var prevIndex = 0;
 	for (var i = 0; i < keyframes.length; i++) {
 		if (keyframes[i][0] <= time) {
@@ -530,6 +474,75 @@ function setTimeValue(animationname, bonename, property, time, value) {
 
 }
 
+function deleteTimeValue(animationname, bonename, property, time) {
+	if (time == 0) {
+		console.log("Can't delete keyframe 0, dipshit");
+	}
+
+	var animation = animations[animationname];
+	var keyframes = animation[bonename][property];
+
+	for (var i = 0; i < keyframes.length; i++) {
+		if (keyframes[i][0] == time) {
+			keyframes.splice(i,1);
+			return;
+		}
+	}
+}
+
+
+var BONE_LABEL_WIDTH = 100;
+var FRAME_WIDTH = 10;
+var ROW_HEIGHT = 20;
+function drawFrameTable() {
+	var animation = animations[currentAnimation];
+
+	var numBones = 0;
+	for (bone in bones) {
+		numBones++;
+	}
+
+	var width = BONE_LABEL_WIDTH + (FRAME_WIDTH * animation.duration);
+	var height = ROW_HEIGHT * numBones;
+	framecanvas.width = width;
+	framecanvas.height = height;
+
+	framecontext.font = '15px bold Arial'
+
+	framecontext.strokeStyle = '#000000';
+	framecontext.lineWidth = 2;
+	framecontext.fillStyle = '#DDDDDD';
+	framecontext.fillRect(BONE_LABEL_WIDTH,0,width,height);
+	framecontext.beginPath();
+	framecontext.moveTo(BONE_LABEL_WIDTH,0);
+	framecontext.lineTo(BONE_LABEL_WIDTH,height-1);
+	framecontext.stroke();
+
+	var row = 0;
+	for (bonename in animation) {
+		if (bonename == 'duration') {
+			continue;
+		}
+		var x = 5;
+		var y = ROW_HEIGHT*row;
+		framecontext.fillStyle = '#000000';
+		framecontext.fillText(bonename,x,y+ROW_HEIGHT-5);
+		framecontext.strokeRect(-1,y-1,width,ROW_HEIGHT);
+
+		var keyframes = animation[bonename]['angle'];
+		for (var i = 0; i < keyframes.length; i++) {
+			x = keyframes[i][0]*FRAME_WIDTH + BONE_LABEL_WIDTH;
+			framecontext.fillStyle = '#666666';
+			framecontext.fillRect(x+1,y,FRAME_WIDTH-3,ROW_HEIGHT-2);
+		}
+		row++;
+	}
+}
+
+function clickedFrame(coords) {
+	return [Math.round((coords[0]-BONE_LABEL_WIDTH)/FRAME_WIDTH), Math.round(coords[1]/ROW_HEIGHT)];
+}
+
 //angle is degrees
 function drawImageRotated(image, x, y, w, h, angle) { 
 	context.save();
@@ -540,7 +553,7 @@ function drawImageRotated(image, x, y, w, h, angle) {
 }
 
 function setCanvasSize() {
-	var outer = document.getElementById('animdisplayouter');
+	var outer = document.getElementById('displayouter');
 	canvasWidth = outer.clientWidth;
 	canvasHeight = outer.clientHeight;
 	canvas.width = canvasWidth;
@@ -549,26 +562,30 @@ function setCanvasSize() {
 	//console.log('canvas size: ' + canvasWidth + 'x' + canvasHeight);
 }
 
-function UIToggleAnimation(checkbox) {
-	console.log(checkbox.checked);
-	playAnimation = checkbox.checked;
+function UIToggleAnimation(on) {
+	playAnimation = on;
 	setFrame(editFrame);
 	document.getElementById('currentframe').readOnly = playAnimation;
 }
 
+function UIFrameButtons(frame) {
+	setFrame(eval(frame));
+}
+
 function UISetAnimation(list) {
-	setFrame(0);
 	currentAnimation = list.options[list.selectedIndex].value;
+	setFrame(0);
+	drawFrameTable();
 }
 
 function UISetFrame(field) {
 	setFrame(field.value);
-	editFrame = field.value;
-	console.log(currentTime);
+	editFrame = field.value;;
 }
 
 function setFrame(frame) {
 	currentTime = frame%animations[currentAnimation].duration;
+	document.getElementById('currentframe').value = currentTime;
 	poseSkeleton();
 }
 
@@ -584,4 +601,5 @@ function logDump(what) {
 var nextTick;
 loadImages();
 showBoneInfo();
+drawFrameTable();
 context.lineWidth = 3;
