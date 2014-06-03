@@ -47,14 +47,14 @@ InputManager.createInputManager = function (element) {
 			return false;
 		},
 		onKeyDown: function(e) {
-			if(InputManager.pressed[e.keyCode])
-				return;
+			//if(InputManager.pressed[e.keyCode])
+				//return;
 			InputManager.pressed[e.keyCode] = true;
 			this.keyDown(InputManager.keyIds[e.keyCode]);
 		},
 		onKeyUp: function(e) {
-			if(!InputManager.pressed[e.keyCode])
-				return;
+			//if(!InputManager.pressed[e.keyCode])
+				//return;
 			InputManager.pressed[e.keyCode] = false;
 			this.keyUp(InputManager.keyIds[e.keyCode]);
 		},
