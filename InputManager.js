@@ -6,10 +6,11 @@ InputManager.MOUSE_DRAG_MIN = 2;
 InputManager.createInputManager = function (element) {
 	var m = {
 		getMouseCoords: function(e) {
+			//console.log(this.element.parentNode.nodeName + " " + this.element.parentNode.scrollTop);
 			var elementX = this.element.offsetLeft;
 			var elementY = this.element.offsetTop;
-			var x = e.clientX - elementX;
-			var y = e.clientY - elementY;
+			var x = e.clientX - elementX + this.element.parentNode.scrollLeft;
+			var y = e.clientY - elementY + this.element.parentNode.scrollTop;
 			return [x,y];
 		},
 		onMouseDown: function(e) {

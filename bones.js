@@ -578,6 +578,8 @@ function selectFrame(which, clear) {
 	if (which[0] >= animations[currentAnimation].duration || which[0] < 0) {
 		return;
 	}
+
+	console.log(JSON.stringify(animations[currentAnimation][boneList[which[1]]]));
 	
 	clear = typeof clear !== 'undefined' ? clear : false;
 	if (clear)
