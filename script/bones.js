@@ -346,7 +346,7 @@ function poseBones(bone) {
 	}
 }
 
-function drawBone(namee) {
+function drawBone(name) {
 	var bone = bones[name];
 
 	//image
