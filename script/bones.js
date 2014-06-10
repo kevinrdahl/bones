@@ -68,6 +68,7 @@ function canvasLeftDown (mouseCoords) {
 		return;
 	}
 
+	var bones = skeleton.bones;
 	for (name in bones) {
 		var bone = bones[name];
 		if (LinAlg.pointDist(mouseCoords,bone.endcoords) <= 5) {
@@ -75,7 +76,7 @@ function canvasLeftDown (mouseCoords) {
 			break;
 		}
 	}
-	if (LinAlg.pointDist(mouseCoords,origin) <= 5) {
+	if (LinAlg.pointDist(mouseCoords,skeleton.origin) <= 5) {
 		clickedBone = 'origin';
 	}
 
@@ -83,14 +84,14 @@ function canvasLeftDown (mouseCoords) {
 		case 'add':
 			if (clickedBone != null) {
 				var name = 'bone' + boneNum++;
-				bones[name] = newBone(0,1,clickedBone,[],false,'bone.png');
+				bones[name] = Skeletons.newBone(0,1,clickedBone,[],false,'bone.png');
 				if (clickedBone == 'origin') {
-					bones[name].coords = origin;
+					bones[name].coords = skeleton.origin;
 				} else {
 					bones[name].coords = bones[clickedBone].endcoords;
 					bones[clickedBone].children.push(name);
 				}
-				addBoneAnimations(name);
+				Skeletons.addBoneAnimations(skeleton,name);
 				clickedBone = name;
 			}
 			break;
@@ -106,7 +107,7 @@ function canvasLeftUp (mouseCoords) {
 	switch (tool) {
 		case 'delete':
 			if (clickedBone != null && clickedBone != 'origin' && !canvasInput.leftMouseDragging) {
-				deleteBone(clickedBone);
+				Skeletons.deleteBone(skeleton,clickedBone);
 			}
 			break;
 		case 'edit':
@@ -132,33 +133,34 @@ function canvasLeftMove (mouseCoords) {
 	switch(tool) {
 		case 'angle':
 			if (clickedBone == 'origin') {
-				skeletonAngle = LinAlg.pointAngle(origin,mouseCoords);
+				skeleton.angle = LinAlg.pointAngle(skeleton.origin,mouseCoords);
 			} else if (clickedBone != null) {
-				var bone = bones[clickedBone];
-				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeletonAngle;
-				setTimeValue(currentAnimation,clickedBone,'angle',currentTime,bone.angle);
+				//TODO: set angles intelligently, based on movement of mouse
+				var bone = skeleton.bones[clickedBone];
+				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeleton.angle;
+				Skeletons.setTimeValue(skeleton,currentAnimation,clickedBone,'angle',currentTime,bone.angle);
 			}
 			break;
 		case 'position':
 			if (clickedBone == 'origin') {
-				origin = mouseCoords;
+				skeleton.origin = mouseCoords;
 			}
 			break;
 		case 'add':
 			if (clickedBone != null) {
-				var bone = bones[clickedBone];
-				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeletonAngle;
+				var bone = skeleton.bones[clickedBone];
+				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeleton.angle;
 				bone.len = LinAlg.pointDist(bone.coords,mouseCoords);
-				for (animationname in animations) {
-					for (property in animatedProperties) {
-						setTimeValue(animationname, clickedBone, property, 0, bone[property]);
+				for (animationname in skeleton.animations) {
+					for (var i = 0; i < Skeletons.animatedProperties.length; i++) {
+						Skeletons.setTimeValue(skeleton, animationname, clickedBone, Skeletons.animatedProperties[i], 0, bone[animatedProperties[i]]);
 					}
 				}
 			}
 			break;
 		case 'length':
 			if (clickedBone != null && clickedBone != 'origin')  {
-				var bone = bones[clickedBone];
+				var bone = skeleton.bones[clickedBone];
 				bone.len = LinAlg.pointDist(mouseCoords,bone.coords);
 			}
 	}
@@ -194,7 +196,7 @@ function showBoneInfo() {
 
 	var info = 'none selected';
 	if (name != null) {
-		var bone = bones[name];
+		var bone = skeleton.bones[name];
 		var children = '[';
 		for (var i = 0; i < bone.children.length; i++) {
 			children += bone.children[i];
@@ -218,8 +220,6 @@ function showBoneInfo() {
 /*=======
 ANIMATION
 =======*/
-var origin = [300,250];
-var skeletonAngle = 0;
 var clickedBone = null;
 var selectedBone = null;
 var tool = 'angle';
@@ -228,60 +228,21 @@ var currentAnimation = 'none';
 var currentTime = 0;
 var playAnimation = false;
 var editFrame = 0;
-var animatedProperties = {'angle':0};
+var animatedProperties = ['angle'];
 var selectedFrames = []; //should be list of [x,y]
 var boneList = [];
 
-var bones = {
-	chest:newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false,'bone.png'),
-	head:newBone(270,50,'chest',[],false,'bone.png'),
-	
-	legleft1:newBone(110,80,'origin',['legleft2'],false,'bone.png'),
-	legleft2:newBone(95,80,'legleft1',['footleft'],false,'bone.png'),
-	footleft:newBone(180,20,'legleft2',[],false,'bone.png'),
-	
-	legright1:newBone(70,80,'origin',['legright2'],false,'bone.png'),
-	legright2:newBone(85,80,'legright1',['footright'],false,'bone.png'),
-	footright:newBone(0,20,'legright2',[],false,'bone.png'),
-	
-	shoulderleft:newBone(160,45,'chest',['armleft1'],false,'bone.png'),
-	armleft1:newBone(100,70,'shoulderleft',['armleft2'],false,'bone.png'),
-	armleft2:newBone(90,65,'armleft1',[],false,'bone.png'),
-	
-	shoulderright:newBone(20,45,'chest',['armright1'],false,'bone.png'),
-	armright1:newBone(80,70,'shoulderright',['armright2'],false,'bone.png'),
-	armright2:newBone(90,65,'armright1',[],false,'bone.png')
-};
-
-var animations = {
-	none:{duration:1},
-	test:{duration:1000}
-};
-
-//for every bone, set frame 0 of the "none" animation to its current angle
-//other transforms can be added later
-for (name in bones) {
-	var bone = bones[name];
-	animations['none'][name] = {angle:[[0, bone.angle]]};
-}
-
-for (name in bones) {
-	var bone = bones[name];
-	animations['test'][name] = {angle:[[0, bone.angle]]};
-}
+var skeleton = Skeletons.newSkeleton();
 
 
 function setTool(which) {
-	clickedBone = null; //probably not needed but who knows
+	clickedBone = null; //probably not needed, but true gangsters play it safe
 	selectedBone = null
 	tool = which;
 
 	console.log(which);
 	showBoneInfo();
 }
-
-var frame = 0;
-var numFrames = 60;
 
 function onTick() {
 	drawFrame();
@@ -302,212 +263,22 @@ function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
 
 	if(playAnimation) {
-		poseSkeleton();
 		setFrame(currentTime+TICK_LEN);
 	}
 
-	for (name in bones) {
-		if (bones[name].parent == 'origin') {
-			bones[name].coords = origin;
-			poseBones(bones[name]);
-		}
-	}
+	Skeletons.poseSkeleton(skeleton,currentAnimation,currentTime);
+	Skeletons.drawSkeleton(context,skeleton);
+	Skeletons.drawWireframe(context,skeleton,[clickedBone,selectedBone]);
 	
-	for (name in bones) {
-		drawBone(name);
-	}
-	context.lineWidth = 3;
-	context.strokeStyle = '#FF0000';
-	context.beginPath()	
-	context.arc(origin[0], origin[1], 3, 0, 2*Math.PI);
-	context.stroke();
+	//Highlighting for operations on the origin
+	/*
 	if (clickedBone == 'origin' && tool == 'angle') {
 		context.beginPath();
 		context.moveTo(origin[0], origin[1]);
 		var coords = LinAlg.pointOffset(origin,skeletonAngle,300);
 		context.lineTo(coords[0], coords[1]);
 		context.stroke();
-	}
-}
-
-//poses the specified bone and then recursively poses its children, if it has any
-function poseBones(bone) {
-	var angle = bone.angle+skeletonAngle;
-	if (bone.rigid) {
-		angle += bones[bone.parent].angle;
-	}
-	bone.finalangle = angle;
-	
-	bone.endcoords = LinAlg.pointOffset(bone.coords, angle, bone.len);
-	for (var i = 0; i < bone.children.length; i++) {
-		var child = bones[bone.children[i]];
-		child.coords = bone.endcoords;
-		poseBones(child);
-	}
-}
-
-function drawBone(name) {
-	var bone = bones[name];
-
-	//image
-	if (bone.image != null) {
-		if (images[bone.image][0]) {
-			var image = images[bone.image][1];
-			var midpoint = LinAlg.midPoint(bone.coords,bone.endcoords);
-			drawImageRotated(image,midpoint[0],midpoint[1],bone.len,bone.len/3,bone.finalangle);
-		}
-	}
-
-	if (clickedBone == name || selectedBone == name) {
-		context.strokeStyle = '#00FF00';
-	} else {
-		context.strokeStyle = '#000000';
-	}
-
-	//wireframe
-	context.beginPath();
-	context.moveTo(bone.coords[0], bone.coords[1]);
-	context.lineTo(bone.endcoords[0], bone.endcoords[1]);
-	context.stroke();
-	
-	context.beginPath()	
-	context.arc(bone.endcoords[0], bone.endcoords[1], 3, 0, 2*Math.PI);
-	context.stroke();
-}
-
-function newBone(angle, len, parent, children, rigid, image) {
-	return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image};
-}
-
-function addBoneAnimations(name) {
-	var bone = bones[name];
-
-	for (animationname in animations) {
-		var animation = animations[animationname];
-		animation[name] = {};
-		for (property in animatedProperties) {
-			animation[name][property] = [[0,bone[property]]];
-		}
-	}
-}
-
-function setBoneParent(bonename, parentname) {
-	if (bone.parent != 'origin' && bone.parent != null) {
-		delete bones[bone.parent].children[bonename];	
-	}
-	var bone = bones[bonename];
-	var parent = bones[parentname];
-	
-	parent.children.push(bonename);
-	bone.parent = parentname;
-}
-
-//deletes a bone, and then recursively deletes its children
-function deleteBone(name) {
-	if (name == 'origin') {
-		bones = {};
-	}
-	var bone = bones[name];
-	if (bone.parent != 'origin') {
-		var parent = bones[bone.parent];
-		parent.children.splice(parent.children.indexOf(name), 1);
-	}
-	while (bone.children.length > 0) {
-		deleteBone(bone.children[0]);
-	}
-	delete bones[name];
-}
-
-//updates all references to a bone
-function renameBone(name, newname) {
-	var bone = bones[name];
-	if (bone.parent != 'origin' && bone.parent != null) {
-		var parent = bones[bone.parent];
-		parent.children.splice(parent.children.indexOf(name), 1);
-		parent.children.push(newname);
-	}
-	for (var i = 0; i < bone.children.length; i++) {
-		bones[children[i]].parent = newname;
-	}
-}
-
-function poseSkeleton () {
-	var animation = animations[currentAnimation];
-
-	for (bonename in bones) {
-		var bone = bones[bonename];
-		for (prop in animation[bonename]) {
-			bone[prop] = getTimeValue(animation[bonename][prop], currentTime);
-		}
-	}
-}
-
-//TODO: instead of iterating over all keyframes to find prev/next, implement a modified binary search for n where n-1 <= n and n < n+1
-//given the keyframes of a property, returns the interpolated value at a specific time
-function getTimeValue(keyframes, time) {
-	if (keyframes.length == 1) {
-		return keyframes[0][1];
-	}
-	
-	var prevIndex = 0;
-	var nextIndex = 0;
-	for (var i = 0; i < keyframes.length; i++) {
-		if (keyframes[i][0] <= time) {
-			prevIndex = i;
-		} else {
-			nextIndex = i;
-			break;
-		}
-	}
-	if (nextIndex == 0) {
-		return keyframes[prevIndex][1];
-	}
-	var prevTime = keyframes[prevIndex][0];
-	var prevValue = keyframes[prevIndex][1];
-	var nextTime = keyframes[nextIndex][0];
-	var nextValue = keyframes[nextIndex][1];
-
-	var progress = (time-prevTime)/(nextTime-prevTime); // [0,1)
-	return prevValue + progress*(nextValue-prevValue); // [prevValue,nextValue)
-}
-
-function setTimeValue(animationname, bonename, property, time, value) {
-	var animation = animations[animationname];
-	var keyframes = animation[bonename][property];
-
-	//find where in the list of keyframes to put this one
-	var prevIndex = 0;
-	for (var i = 0; i < keyframes.length; i++) {
-		if (keyframes[i][0] <= time) {
-			prevIndex = i;
-		} else {
-			break;
-		}
-	}
-
-	if (keyframes[prevIndex][0] == time) {
-		keyframes[prevIndex][1] = value;
-	} else {
-		keyframes.splice(prevIndex+1, 0, [time,value]);
-	}
-
-}
-
-function deleteTimeValue(animationname, bonename, property, time) {
-	if (time == 0) {
-		console.alert("Can't delete frame 0");
-		return;
-	}
-
-	var animation = animations[animationname];
-	var keyframes = animation[bonename][property];
-
-	for (var i = 0; i < keyframes.length; i++) {
-		if (keyframes[i][0] == time) {
-			keyframes.splice(i,1);
-			return;
-		}
-	}
+	}*/
 }
 
 
@@ -516,7 +287,8 @@ var FRAME_WIDTH = 10;
 var ROW_HEIGHT = 20;
 function drawFrameTable() {
 	boneList = [];
-	var animation = animations[currentAnimation];
+	var animation = skeleton.animations[currentAnimation];
+	var bones = skeleton.bones;
 
 	var numBones = 0;
 	for (bone in bones) {
@@ -575,6 +347,7 @@ function clickedFrame(coords) {
 }
 
 function selectFrame(which, clear) {
+	var animations = skeleton.animations;
 	if (which[0] >= animations[currentAnimation].duration || which[0] < 0) {
 		return;
 	}
@@ -585,28 +358,19 @@ function selectFrame(which, clear) {
 	if (clear)
 		restoreFrameTable();
 	
-	var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH) - 1;
+	var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH);
 	var y = which[1]*ROW_HEIGHT - 1;
 	framecontext.strokeStyle = '#00FF00';
-	framecontext.strokeRect(x,y,FRAME_WIDTH,ROW_HEIGHT);
+	framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
 }
 
 function hasKeyFrame(bone, time) {
-	var keyframes = animations[currentAnimation][bone]['angle'];
+	var keyframes = skeleton.animations[currentAnimation][bone]['angle'];
 	for (var i = 0; i < keyframes.length; i++) {
 		if (keyframes[i][0] == time)
 			return true;
 	}
 	return false;
-}
-
-//angle is degrees
-function drawImageRotated(image, x, y, w, h, angle) { 
-	context.save();
-	context.translate(x, y);
-	context.rotate(LinAlg.toRadians(angle));
-	context.drawImage(image, -w/2, -h/2, w, h); //x,y,w,h
-	context.restore(); 
 }
 
 function setCanvasSize() {
@@ -615,8 +379,6 @@ function setCanvasSize() {
 	canvasHeight = outer.clientHeight;
 	canvas.width = canvasWidth;
 	canvas.height = canvasHeight;
-
-	//console.log('canvas size: ' + canvasWidth + 'x' + canvasHeight);
 }
 
 function UIToggleAnimation(on) {
@@ -637,7 +399,7 @@ function UISetAnimation(list) {
 
 function UISetFrame(field) {
 	setFrame(field.value);
-	editFrame = field.value;;
+	editFrame = field.value;
 }
 
 function setFrame(frame) {
