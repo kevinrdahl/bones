@@ -41,8 +41,8 @@ function loadImages() {
 }
 
 function loadComplete() {
-	nextTick = new Date().getTime()+TICK_LEN;
-	onTick();
+	time = new Date().getTime();
+	window.requestAnimationFrame(drawFrame);
 }
 
 /*======
@@ -245,7 +245,7 @@ function setTool(which) {
 	showBoneInfo();
 }
 
-function onTick() {
+/*function onTick() {
 	drawFrame();
 
 	setTick();
@@ -258,18 +258,24 @@ function setTick() {
 	}
 	setTimeout(onTick,wait);
 	nextTick += TICK_LEN;
-}
+}*/
 
 function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
+	
+	newtime = new Date().getTime();
+	timedelta = newtime-time;
+	time = newtime;
 
 	if(playAnimation) {
-		setFrame(currentTime+TICK_LEN);
+		setFrame(currentTime+timedelta);
 	}
 
 	Skeletons.poseSkeleton(skeleton,currentAnimation,currentTime);
 	Skeletons.drawSkeleton(context,skeleton);
 	Skeletons.drawWireframe(context,skeleton,[clickedBone,selectedBone]);
+	
+	window.requestAnimationFrame(drawFrame);
 }
 
 
@@ -371,6 +377,9 @@ function setCanvasSize() {
 }
 
 function UIToggleAnimation(on) {
+	if (on) {
+		time = new Date().getTime();
+	}
 	playAnimation = on;
 	setFrame(editFrame);
 	document.getElementById('currentframe').readOnly = playAnimation;
