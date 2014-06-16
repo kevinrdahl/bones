@@ -245,21 +245,6 @@ function setTool(which) {
 	showBoneInfo();
 }
 
-/*function onTick() {
-	drawFrame();
-
-	setTick();
-}
-
-function setTick() {
-	var wait = nextTick - new Date().getTime();
-	if (wait < 0) {
-		wait = 0;
-	}
-	setTimeout(onTick,wait);
-	nextTick += TICK_LEN;
-}*/
-
 function drawFrame() {
 	context.clearRect(0,0,canvasWidth, canvasHeight);
 	
