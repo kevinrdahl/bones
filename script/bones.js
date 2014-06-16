@@ -12,9 +12,9 @@ setCanvasSize();
 
 var framecanvas = document.getElementById("framecanvas");
 var framecontext = framecanvas.getContext("2d");
-framecanvas.setAttribute("tabindex", 0);
+framecanvas.setAttribute("tabindex", 1);
 
-var imgPrefix = 'http://kevinstuff.net/img/'; //var imgPrefix = 'img/';
+var imgPrefix = 'http://kevinstuff.net/img/';
 var imageList = ['bone.png'];
 var images = new Object();
 var numLoaded = 0;
@@ -233,6 +233,7 @@ var selectedFrames = []; //should be list of [x,y]
 var boneList = [];
 
 var skeleton = Skeletons.newSkeleton();
+Skeletons.addAnimation(skeleton, 'test', 1000);
 
 
 function setTool(which) {
@@ -269,16 +270,6 @@ function drawFrame() {
 	Skeletons.poseSkeleton(skeleton,currentAnimation,currentTime);
 	Skeletons.drawSkeleton(context,skeleton);
 	Skeletons.drawWireframe(context,skeleton,[clickedBone,selectedBone]);
-	
-	//Highlighting for operations on the origin
-	/*
-	if (clickedBone == 'origin' && tool == 'angle') {
-		context.beginPath();
-		context.moveTo(origin[0], origin[1]);
-		var coords = LinAlg.pointOffset(origin,skeletonAngle,300);
-		context.lineTo(coords[0], coords[1]);
-		context.stroke();
-	}*/
 }
 
 
@@ -351,8 +342,6 @@ function selectFrame(which, clear) {
 	if (which[0] >= animations[currentAnimation].duration || which[0] < 0) {
 		return;
 	}
-
-	console.log(JSON.stringify(animations[currentAnimation][boneList[which[1]]]));
 	
 	clear = typeof clear !== 'undefined' ? clear : false;
 	if (clear)
@@ -360,7 +349,7 @@ function selectFrame(which, clear) {
 	
 	var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH);
 	var y = which[1]*ROW_HEIGHT - 1;
-	framecontext.strokeStyle = '#00FF00';
+	framecontext.strokeStyle = "#00FF00";
 	framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
 }
 
@@ -403,9 +392,9 @@ function UISetFrame(field) {
 }
 
 function setFrame(frame) {
-	currentTime = frame%animations[currentAnimation].duration;
+	currentTime = frame % skeleton.animations[currentAnimation].duration;
 	document.getElementById('currentframe').value = currentTime;
-	poseSkeleton();
+	Skeletons.poseSkeleton(skeleton, currentAnimation, currentTime);
 }
 
 function logDump(what) {

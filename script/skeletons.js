@@ -25,8 +25,7 @@ var Skeletons = {
 		};
 
 		var animations = {
-			none:{duration:1},
-			test:{duration:1000}
+			none:{duration:1}
 		};
 
 		for (name in bones) {
@@ -278,13 +277,13 @@ var Skeletons = {
 		}
 	},
 
-	addAnimation:function(skeleton, animationname) {
+	addAnimation:function(skeleton, animationname, duration) {
 		if (animationname in skeleton.animations) {
 			alert("Skeleton already has animation \"" + animationname + "\"");
 			return;
 		}
 
-		var animation = {};
+		var animation = {duration:duration};
 
 		for (bonename in skeleton.bones) {
 			animation[bonename] = {};
@@ -293,6 +292,8 @@ var Skeletons = {
 				animation[bonename][property] = [[0, skeleton.animations['none'][bonename][property][0][1]]]; //value of 'none' at frame 0
 			}
 		}
+		
+		skeleton.animations[animationname] = animation;
 
 	}
 
