@@ -400,8 +400,6 @@ function logDump(what) {
 //============
 //	INIT
 //============
-var nextTick;
 loadImages();
 showBoneInfo();
 drawFrameTable();
-context.lineWidth = 3;
