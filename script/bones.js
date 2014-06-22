@@ -335,13 +335,27 @@ function selectFrame(which, clear) {
 	}
 	
 	clear = typeof clear !== 'undefined' ? clear : false;
-	if (clear)
+	if (clear) {
 		restoreFrameTable();
-	
-	var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH);
-	var y = which[1]*ROW_HEIGHT - 1;
-	framecontext.strokeStyle = "#00FF00";
-	framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
+		selectedFrames = [];
+	}
+
+	//"if (item in list)" functionality does not work here because the items are lists
+	var alreadySelected = false;
+	for (var i = 0; i < selectedFrames.length; i++) {
+		if (which[0] == selectedFrames[i][0] && which[1] == selectedFrames[i][1]) {
+			alreadySelected = true;
+			break;
+		}
+	}
+
+	if (!alreadySelected) {
+		var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH);
+		var y = which[1]*ROW_HEIGHT - 1;
+		framecontext.strokeStyle = "#00FF00";
+		framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
+		selectedFrames.push(which);
+	}
 }
 
 function hasKeyFrame(bone, time) {

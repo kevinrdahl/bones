@@ -108,7 +108,7 @@ var Skeletons = {
 	},
 
 	//NOTE: Skeletons set its context variable each time it is told to draw the skeleton or wireframe
-	//it is absolutely not thread safe
+	//it is absolutely not thread safe, but this is javascript homie
 	drawBone:function(bone) {
 		if (bone.image != null) {
 			if (images[bone.image][0]) {
