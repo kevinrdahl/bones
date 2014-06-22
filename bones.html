@@ -83,20 +83,21 @@
 				<br>
 				<input type="button" value="Update" onClick="editBone(this.form)">
 			</form>
-			<hr>
 			<br>
+			<hr>
 			<b>Frames</b><br>
-			<input type="button" value="Copy" onClick="console.log('aaa')"><br>
+			<input type="button" value="Copy" onClick="UICopyFrames()"><br>
 			<input type="button" value="Cut" onClick="console.log('aaa')"><br>
-			<input type="button" value="Paste" onClick="console.log('aaa')"><br>
+			<input type="button" value="Paste" onClick="UIPasteFrames()"><br>
 			<input type="button" value="Delete" onClick="console.log('aaa')"><br>
 			<br>
 			<hr>
 			<b>Animations</b><br>
-			<input type="button" value="Clone" onClick="console.log('aaa')"><br>
-			<input type="button" value="Add" onClick="console.log('aaa')"><br>
-			<input type="button" value="Rename" onClick="console.log('aaa')"><br>
-			<input type="button" value="Delete" onClick="console.log('aaa')"><br>
+			<input type="button" value="Clone" onClick="UICloneAnimation()"><br>
+			<input type="button" value="Add" onClick="UIAddAnimation()"><br>
+			<input type="button" value="Length" onClick="UISetAnimationDuration()"><br>
+			<input type="button" value="Rename" onClick="UIRenameAnimation()"><br>
+			<input type="button" value="Delete" onClick="UIDeleteAnimation()"><br>
 
     	</div>
 
@@ -108,7 +109,6 @@
 	        	<div id="animtools">
 	        		<select id="animationlist" onchange="UISetAnimation(this);">
 						<option value="none" selected="selected">none</option>
-						<option value="test">test</option>
 					</select>
 					<input type="number" id="currentframe" min="0" value="0" onchange="UISetFrame(this)">
 					<img src="img/start.png" onClick="UIFrameButtons('0')">

@@ -108,6 +108,8 @@ function canvasLeftUp (mouseCoords) {
 		case 'delete':
 			if (clickedBone != null && clickedBone != 'origin' && !canvasInput.leftMouseDragging) {
 				Skeletons.deleteBone(skeleton,clickedBone);
+				drawFrameTable();
+				highlightFrames();
 			}
 			break;
 		case 'edit':
@@ -119,6 +121,7 @@ function canvasLeftUp (mouseCoords) {
 		case 'angle':
 		case 'add':
 			drawFrameTable();
+			highlightFrames();
 	}
 
 	clickedBone = null;
@@ -138,7 +141,7 @@ function canvasLeftMove (mouseCoords) {
 				//TODO: set angles intelligently, based on movement of mouse
 				var bone = skeleton.bones[clickedBone];
 				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeleton.angle;
-				Skeletons.setTimeValue(skeleton,currentAnimation,clickedBone,'angle',currentTime,bone.angle);
+				Skeletons.setTimeValue(skeleton.animations[currentAnimation][clickedBone]['angle'],currentTime,bone.angle);
 			}
 			break;
 		case 'position':
@@ -153,7 +156,7 @@ function canvasLeftMove (mouseCoords) {
 				bone.len = LinAlg.pointDist(bone.coords,mouseCoords);
 				for (animationname in skeleton.animations) {
 					for (var i = 0; i < Skeletons.animatedProperties.length; i++) {
-						Skeletons.setTimeValue(skeleton, animationname, clickedBone, Skeletons.animatedProperties[i], 0, bone[animatedProperties[i]]);
+						Skeletons.setTimeValue(skeleton.animations[animationname][clickedBone][Skeletons.animatedProperties[i]], 0, bone[animatedProperties[i]]);
 					}
 				}
 			}
@@ -168,8 +171,8 @@ function canvasLeftMove (mouseCoords) {
 }
 
 function frameCanvasLeftDown (mouseCoords) {
-	var coords = clickedFrame(mouseCoords);
-	selectFrame(coords, !InputManager.pressed[InputManager.keys['SHIFT']]);
+	var which = clickedFrame(mouseCoords);
+	selectFrame(which, !InputManager.pressed[InputManager.keys['SHIFT']]);
 }
 
 function frameCanvasLeftUp (mouseCoords) {
@@ -230,6 +233,7 @@ var playAnimation = false;
 var editFrame = 0;
 var animatedProperties = ['angle'];
 var selectedFrames = []; //should be list of [x,y]
+var copiedFrames = [];
 var boneList = [];
 
 var skeleton = Skeletons.newSkeleton();
@@ -263,6 +267,23 @@ function drawFrame() {
 	window.requestAnimationFrame(drawFrame);
 }
 
+function updateAnimationList() {
+	var list = document.getElementById("animationlist");
+
+	while (list.length > 0) {
+		list.remove(0);
+	}
+
+	for (name in skeleton.animations) {
+		var option = document.createElement("option");
+		option.text = name;
+		option.value = name;
+		if (name == currentAnimation) {
+			option.selected = true;
+		}
+		list.add(option);
+	}
+}
 
 var BONE_LABEL_WIDTH = 100;
 var FRAME_WIDTH = 10;
@@ -324,13 +345,37 @@ function restoreFrameTable() {
 	framecontext.putImageData(savedframetable,0,0);
 }
 
+function highlightFrames() {
+	restoreFrameTable();
+	for (var i = 0; i < selectedFrames.length; i++) {
+		if (boneList.indexOf(selectedFrames[i][0]) == -1) {
+			continue;
+		}
+		var x = BONE_LABEL_WIDTH + (selectedFrames[i][1] * FRAME_WIDTH);
+		var y = boneList.indexOf(selectedFrames[i][0])*ROW_HEIGHT - 1;
+		framecontext.strokeStyle = "#00FF00";
+		framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
+	}
+
+	//time marker
+	var x = BONE_LABEL_WIDTH + (currentTime * FRAME_WIDTH) + (FRAME_WIDTH / 2);
+	framecontext.strokeStyle = "#FF0000";
+	framecontext.beginPath();
+	framecontext.moveTo(x,0);
+	framecontext.lineTo(x,framecanvas.height-1);
+	framecontext.stroke();
+}
+
+//returns the bone name and time at coords of the frametable
 function clickedFrame(coords) {
-	return [Math.floor((coords[0]-BONE_LABEL_WIDTH)/FRAME_WIDTH), Math.floor(coords[1]/ROW_HEIGHT)];
+	return [boneList[Math.floor(coords[1]/ROW_HEIGHT)], Math.floor((coords[0]-BONE_LABEL_WIDTH)/FRAME_WIDTH)];
 }
 
 function selectFrame(which, clear) {
 	var animations = skeleton.animations;
-	if (which[0] >= animations[currentAnimation].duration || which[0] < 0) {
+	if (which[1] >= animations[currentAnimation].duration || which[1] < 0) {
+		return;
+	} else if (boneList.indexOf(which[0]) == -1) {
 		return;
 	}
 	
@@ -338,9 +383,10 @@ function selectFrame(which, clear) {
 	if (clear) {
 		restoreFrameTable();
 		selectedFrames = [];
+		setFrame(which[1]);
 	}
 
-	//"if (item in list)" functionality does not work here because the items are lists
+	//indexOf does not work here because the items are lists
 	var alreadySelected = false;
 	for (var i = 0; i < selectedFrames.length; i++) {
 		if (which[0] == selectedFrames[i][0] && which[1] == selectedFrames[i][1]) {
@@ -350,12 +396,10 @@ function selectFrame(which, clear) {
 	}
 
 	if (!alreadySelected) {
-		var x = BONE_LABEL_WIDTH + (which[0] * FRAME_WIDTH);
-		var y = which[1]*ROW_HEIGHT - 1;
-		framecontext.strokeStyle = "#00FF00";
-		framecontext.strokeRect(x,y,FRAME_WIDTH-1,ROW_HEIGHT);
 		selectedFrames.push(which);
 	}
+
+	highlightFrames();
 }
 
 function hasKeyFrame(bone, time) {
@@ -375,6 +419,55 @@ function setCanvasSize() {
 	canvas.height = canvasHeight;
 }
 
+function UICopyFrames() {
+	copiedFrames = [];
+	var name, time, keyframes, value;
+	for (var i = 0; i < selectedFrames.length; i++) {
+		name = selectedFrames[i][0];
+		time = selectedFrames[i][1];
+		keyframes = skeleton.animations[currentAnimation][name]['angle'];
+		value = Skeletons.getTimeValue(keyframes, time);
+		copiedFrames.push([name, time, value]);
+	}
+
+	console.log(JSON.stringify(copiedFrames));
+}
+
+function UIPasteFrames() {
+	if (copiedFrames.length == 0) {
+		return;
+	}
+
+	//find leftmost time
+	var left = -1;
+	for (var i = 0; i < copiedFrames.length; i++) {
+		if (left == -1 || copiedFrames[i][1] < left) {
+			left = copiedFrames[i][1];
+		}
+	}
+
+	var name, time, value;
+	for (var i = 0; i < copiedFrames.length; i++) {
+		console.log("loop");
+		name = copiedFrames[i][0];
+		time = copiedFrames[i][1] + currentTime - left;
+		value = copiedFrames[i][2];
+
+		if (boneList.indexOf(name) == -1) {
+			continue;
+		}
+		if (time > skeleton.animations[currentAnimation].duration-1) {
+			skeleton.animations[currentAnimation].duration = time+1;
+		}
+
+		//console.log("Set " + currentAnimation + " " + name + " " + time + " = " + value);
+		Skeletons.setTimeValue(skeleton.animations[currentAnimation][name]['angle'], time, value);
+	}
+
+	drawFrameTable();
+	highlightFrames();
+}
+
 function UIToggleAnimation(on) {
 	if (on) {
 		time = new Date().getTime();
@@ -392,6 +485,7 @@ function UISetAnimation(list) {
 	currentAnimation = list.options[list.selectedIndex].value;
 	setFrame(0);
 	drawFrameTable();
+	highlightFrames();
 }
 
 function UISetFrame(field) {
@@ -399,10 +493,87 @@ function UISetFrame(field) {
 	editFrame = field.value;
 }
 
+function UIRenameAnimation() {
+	if (currentAnimation == 'none') {
+		alert("Can't rename the \"none\" animation.");
+		return;
+	}
+	var name = prompt("Rename animation:", currentAnimation);
+	for (animationname in skeleton.animations) {
+		if (name == animationname) {
+			alert("\"" + name + "\" already exists.");
+			return;
+		}
+	}
+	skeleton.animations[name] = skeleton.animations[currentAnimation];
+	delete skeleton.animations[currentAnimation];
+	currentAnimation = name;
+	updateAnimationList();
+}
+
+function UIAddAnimation() {
+	var name = prompt("New animation name:", "");
+	var duration = parseInt(prompt("Duration:", ""));
+	console.log(duration);
+	for (animationname in skeleton.animations) {
+		if (name == animationname) {
+			alert("\"" + name + "\" already exists.");
+			return;
+		}
+	}
+	if (duration == NaN || duration < 0) {
+		alert(duration + " is not a valid duration.");
+	}
+
+	Skeletons.addAnimation(skeleton,name,duration);
+	updateAnimationList();
+}
+
+function UICloneAnimation() {
+	var name = prompt("New animation name:", currentAnimation + "-clone");
+	for (animationname in skeleton.animations) {
+		if (name == animationname) {
+			alert("\"" + name + "\" already exists.");
+			return;
+		}
+	}
+	Skeletons.cloneAnimation(skeleton, currentAnimation, name);
+	updateAnimationList();
+}
+
+function UISetAnimationDuration() {
+	var duration = parseInt(prompt("New duration for \"" + currentAnimation + "\":", skeleton.animations[currentAnimation].duration));
+	if (duration == NaN || duration < 0) {
+		alert(duration + " is not a valid duration.");
+	}
+
+	Skeletons.setAnimationDuration(skeleton, currentAnimation, duration);
+	drawFrameTable();
+}
+
+function UIDeleteAnimation() {
+	if (currentAnimation == 'none') {
+		alert("Can't delete the \"none\" animation");
+		return;
+	}
+	if (!confirm("Delete \"" + currentAnimation + "\"" + "?")) {
+		return;
+	}
+
+	Skeletons.deleteAnimation(skeleton, currentAnimation);
+
+	currentAnimation = 'none';
+	setFrame(0);
+	drawFrameTable();
+	highlightFrames();
+	updateAnimationList();
+}
+
 function setFrame(frame) {
 	currentTime = frame % skeleton.animations[currentAnimation].duration;
 	document.getElementById('currentframe').value = currentTime;
 	Skeletons.poseSkeleton(skeleton, currentAnimation, currentTime);
+	highlightFrames();
 }
 
 function logDump(what) {
@@ -416,4 +587,6 @@ function logDump(what) {
 //============
 loadImages();
 showBoneInfo();
+updateAnimationList();
 drawFrameTable();
+highlightFrames();

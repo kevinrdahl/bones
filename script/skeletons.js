@@ -162,12 +162,11 @@ var Skeletons = {
 		for (animationname in animations) {
 			var animation = animations[animationname];
 			animation[bonename] = {};
-			for (var i = 0; i < animatedProperties.length; i++) {
-				var property = animatedProperties[i];
+			for (var i = 0; i < this.animatedProperties.length; i++) {
+				var property = this.animatedProperties[i];
 				animation[bonename][property] = [[0,bone[property]]];
 			}
 		}
-		console.log(JSON.stringify(skeleton.animations, null, 4));
 	},
 
 	setBoneParent:function(skeleton, bonename, parentname) {
@@ -238,10 +237,7 @@ var Skeletons = {
 		return prevValue + progress*(nextValue-prevValue); // [prevValue,nextValue)
 	},
 
-	setTimeValue:function(skeleton, animationname, bonename, property, time, value) {
-		var animation = skeleton.animations[animationname];
-		var keyframes = animation[bonename][property];
-
+	setTimeValue:function(keyframes, time, value) {
 		//find where in the list of keyframes to put this one
 		var prevIndex = 0;
 		for (var i = 0; i < keyframes.length; i++) {
@@ -287,14 +283,45 @@ var Skeletons = {
 
 		for (bonename in skeleton.bones) {
 			animation[bonename] = {};
-			for (var i = 0; i < animatedProperties.length; i++) {
-				var property = animatedProperties[i];
+			for (var i = 0; i < this.animatedProperties.length; i++) {
+				var property = this.animatedProperties[i];
 				animation[bonename][property] = [[0, skeleton.animations['none'][bonename][property][0][1]]]; //value of 'none' at frame 0
 			}
 		}
 		
 		skeleton.animations[animationname] = animation;
+	},
 
+	cloneAnimation:function(skeleton, sourcename, newname) {
+		skeleton.animations[newname] = eval(JSON.stringify(skeleton.animations[sourcename]));
+	},
+
+	setAnimationDuration:function(skeleton, animationname, duration) {
+		var animation = skeleton.animations[animationname];
+
+		if (duration >= animation.duration) {
+			animation.duration = duration;
+			return;
+		}
+
+		animation.duration = duration;
+
+		for (bonename in animation) {
+			for (var i = 0; i < this.animatedProperties.length; i++) {
+				var property = this.animatedProperties[i];
+				var keyframes = animation[bonename][property];
+				for (var j = 0; j < keyframes.length; j++) {
+					if (keyframes[j][0] > duration-1) {
+						keyframes.splice(j,1);
+						j--;
+					}
+				}
+			}
+		}
+	},
+
+	deleteAnimation:function(skeleton, animationname) {
+		delete skeleton.animations[animationname];
 	}
 
 };
