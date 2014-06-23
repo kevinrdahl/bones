@@ -141,7 +141,7 @@ function canvasLeftMove (mouseCoords) {
 				//TODO: set angles intelligently, based on movement of mouse
 				var bone = skeleton.bones[clickedBone];
 				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeleton.angle;
-				Skeletons.setTimeValue(skeleton.animations[currentAnimation][clickedBone]['angle'],currentTime,bone.angle);
+				Skeletons.setFrame(skeleton.animations[currentAnimation][clickedBone]['angle'],currentTime,bone.angle);
 			}
 			break;
 		case 'position':
@@ -156,7 +156,7 @@ function canvasLeftMove (mouseCoords) {
 				bone.len = LinAlg.pointDist(bone.coords,mouseCoords);
 				for (animationname in skeleton.animations) {
 					for (var i = 0; i < Skeletons.animatedProperties.length; i++) {
-						Skeletons.setTimeValue(skeleton.animations[animationname][clickedBone][Skeletons.animatedProperties[i]], 0, bone[animatedProperties[i]]);
+						Skeletons.setFrame(skeleton.animations[animationname][clickedBone][Skeletons.animatedProperties[i]], 0, bone[animatedProperties[i]]);
 					}
 				}
 			}
@@ -426,11 +426,16 @@ function UICopyFrames() {
 		name = selectedFrames[i][0];
 		time = selectedFrames[i][1];
 		keyframes = skeleton.animations[currentAnimation][name]['angle'];
-		value = Skeletons.getTimeValue(keyframes, time);
+		value = Skeletons.getFrame(keyframes, time);
 		copiedFrames.push([name, time, value]);
 	}
 
 	console.log(JSON.stringify(copiedFrames));
+}
+
+function UICutFrames() {
+	UICopyFrames();
+	UIDeleteFrames();
 }
 
 function UIPasteFrames() {
@@ -461,9 +466,22 @@ function UIPasteFrames() {
 		}
 
 		//console.log("Set " + currentAnimation + " " + name + " " + time + " = " + value);
-		Skeletons.setTimeValue(skeleton.animations[currentAnimation][name]['angle'], time, value);
+		Skeletons.setFrame(skeleton.animations[currentAnimation][name]['angle'], time, value);
 	}
 
+	drawFrameTable();
+	highlightFrames();
+}
+
+function UIDeleteFrames() {
+	for (var i = 0; i < selectedFrames.length; i++) {
+		for (var j = 0; j < Skeletons.animatedProperties.length; j++) {
+			var keyframes = skeleton.animations[currentAnimation][selectedFrames[i][0]][Skeletons.animatedProperties[j]];
+			var time = selectedFrames[i][1];
+			Skeletons.deleteFrame(keyframes, time);
+		}
+	}
+	selectedFrames = [];
 	drawFrameTable();
 	highlightFrames();
 }
@@ -512,7 +530,7 @@ function UIRenameAnimation() {
 }
 
 function UIAddAnimation() {
-	var name = prompt("New animation name:", "");
+	var name = prompt("New animation name", "");
 	var duration = parseInt(prompt("Duration:", ""));
 	console.log(duration);
 	for (animationname in skeleton.animations) {
@@ -530,7 +548,7 @@ function UIAddAnimation() {
 }
 
 function UICloneAnimation() {
-	var name = prompt("New animation name:", currentAnimation + "-clone");
+	var name = prompt("New animation name", currentAnimation + "-clone");
 	for (animationname in skeleton.animations) {
 		if (name == animationname) {
 			alert("\"" + name + "\" already exists.");
@@ -567,6 +585,14 @@ function UIDeleteAnimation() {
 	drawFrameTable();
 	highlightFrames();
 	updateAnimationList();
+}
+
+function UISaveSkeleton() {
+	prompt("Skeleton JSON", JSON.stringify(skeleton));
+}
+
+function UILoadSkeleton() {
+
 }
 
 function setFrame(frame) {

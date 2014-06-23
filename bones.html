@@ -66,6 +66,11 @@
     </head>
     <body onresize="setCanvasSize()">
     	<div id="inputdiv">
+    		<input type="button" value="Save" onClick="UISaveSkeleton()"><br>
+    		<input type="button" value="Load" onClick="UILoadSkeleton()"><br>
+    		<br>
+
+			<hr>
 			<b>Tools</b><br>
 			<input type="button" value="Angle" onClick="setTool('angle')"><br>
 			<input type="button" value="Position" onClick="setTool('position')"><br>
@@ -84,13 +89,15 @@
 				<input type="button" value="Update" onClick="editBone(this.form)">
 			</form>
 			<br>
+			
 			<hr>
 			<b>Frames</b><br>
 			<input type="button" value="Copy" onClick="UICopyFrames()"><br>
-			<input type="button" value="Cut" onClick="console.log('aaa')"><br>
+			<input type="button" value="Cut" onClick="UICutFrames()"><br>
 			<input type="button" value="Paste" onClick="UIPasteFrames()"><br>
-			<input type="button" value="Delete" onClick="console.log('aaa')"><br>
+			<input type="button" value="Delete" onClick="UIDeleteFrames()"><br>
 			<br>
+			
 			<hr>
 			<b>Animations</b><br>
 			<input type="button" value="Clone" onClick="UICloneAnimation()"><br>
@@ -98,6 +105,11 @@
 			<input type="button" value="Length" onClick="UISetAnimationDuration()"><br>
 			<input type="button" value="Rename" onClick="UIRenameAnimation()"><br>
 			<input type="button" value="Delete" onClick="UIDeleteAnimation()"><br>
+			<br>
+			
+			<hr>
+			<b>Images</b><br>
+			Just put a big text box here with nicely formatted JSON. That's honestly just as easy to use.
 
     	</div>
 
@@ -117,7 +129,6 @@
 		    		<img src="img/stop.png" onClick="UIToggleAnimation(false)">
 		    		<img src="img/next.png" onClick="UIFrameButtons('currentTime+1')">
 		    		<img src="img/end.png" onClick="UIFrameButtons('animations[currentAnimation].duration-1')">
-		    		<input type="button" value="JSON" onClick="logDump('animations[currentAnimation]')">
 	        	</div>
 	        	<div id="animframes">
 	        		<canvas id="framecanvas"></canvas>

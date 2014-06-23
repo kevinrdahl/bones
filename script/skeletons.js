@@ -47,7 +47,7 @@ var Skeletons = {
 		for (name in bones) {
 			var bone = bones[name];
 			for (prop in animation[name]) {
-				bone[prop] = this.getTimeValue(animation[name][prop], time);
+				bone[prop] = this.getFrame(animation[name][prop], time);
 			}
 		}
 
@@ -210,7 +210,7 @@ var Skeletons = {
 
 	//TODO: instead of iterating over all keyframes to find prev/next, implement a modified binary search for n where n-1 <= n and n < n+1
 	//given the keyframes of a property, returns the interpolated value at a specific time
-	getTimeValue:function(keyframes, time) {
+	getFrame:function(keyframes, time) {
 		if (keyframes.length == 1) {
 			return keyframes[0][1];
 		}
@@ -237,7 +237,7 @@ var Skeletons = {
 		return prevValue + progress*(nextValue-prevValue); // [prevValue,nextValue)
 	},
 
-	setTimeValue:function(keyframes, time, value) {
+	setFrame:function(keyframes, time, value) {
 		//find where in the list of keyframes to put this one
 		var prevIndex = 0;
 		for (var i = 0; i < keyframes.length; i++) {
@@ -257,14 +257,7 @@ var Skeletons = {
 	},
 
 	//deletes a keyframe
-	deleteTimeValue:function(skeleton, animationname, bonename, property, time) {
-		if (time == 0) {
-			skeleton.animations[animationname][bonename][property][0] = skeleton.animations['none'][bonename][property][0][1];
-		}
-
-		var animation = skeleton.animations[animationname];
-		var keyframes = animation[bonename][property];
-
+	deleteFrame:function(keyframes, time) {
 		for (var i = 0; i < keyframes.length; i++) {
 			if (keyframes[i][0] == time) {
 				keyframes.splice(i,1);
