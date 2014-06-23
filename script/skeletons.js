@@ -4,24 +4,24 @@ var Skeletons = {
 		var origin = [300,250];
 		var angle = 0;
 		var bones = {
-			chest:this.newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false,'bone.png'),
-			head:this.newBone(270,50,'chest',[],false,'bone.png'),
+			chest:this.newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false),
+			head:this.newBone(270,50,'chest',[],false),
 			
-			legleft1:this.newBone(110,80,'origin',['legleft2'],false,'bone.png'),
-			legleft2:this.newBone(95,80,'legleft1',['footleft'],false,'bone.png'),
-			footleft:this.newBone(180,20,'legleft2',[],false,'bone.png'),
+			legleft1:this.newBone(110,80,'origin',['legleft2'],false),
+			legleft2:this.newBone(95,80,'legleft1',['footleft'],false),
+			footleft:this.newBone(180,20,'legleft2',[],false),
 			
-			legright1:this.newBone(70,80,'origin',['legright2'],false,'bone.png'),
-			legright2:this.newBone(85,80,'legright1',['footright'],false,'bone.png'),
-			footright:this.newBone(0,20,'legright2',[],false,'bone.png'),
+			legright1:this.newBone(70,80,'origin',['legright2'],false),
+			legright2:this.newBone(85,80,'legright1',['footright'],false),
+			footright:this.newBone(0,20,'legright2',[],false),
 			
-			shoulderleft:this.newBone(160,45,'chest',['armleft1'],false,'bone.png'),
-			armleft1:this.newBone(100,70,'shoulderleft',['armleft2'],false,'bone.png'),
-			armleft2:this.newBone(90,65,'armleft1',[],false,'bone.png'),
+			shoulderleft:this.newBone(160,45,'chest',['armleft1'],false),
+			armleft1:this.newBone(100,70,'shoulderleft',['armleft2'],false),
+			armleft2:this.newBone(90,65,'armleft1',[],false),
 			
-			shoulderright:this.newBone(20,45,'chest',['armright1'],false,'bone.png'),
-			armright1:this.newBone(80,70,'shoulderright',['armright2'],false,'bone.png'),
-			armright2:this.newBone(90,65,'armright1',[],false,'bone.png')
+			shoulderright:this.newBone(20,45,'chest',['armright1'],false),
+			armright1:this.newBone(80,70,'shoulderright',['armright2'],false),
+			armright2:this.newBone(90,65,'armright1',[],false)
 		};
 
 		var animations = {
@@ -36,8 +36,8 @@ var Skeletons = {
 		return {origin:origin, angle:angle, bones:bones, animations:animations, images:images};
 	},
 
-	newBone:function(angle, len, parent, children, rigid, image) {
-		return {angle:angle, len:len, parent:parent, children:children, rigid:rigid, image:image};
+	newBone:function(angle, len, parent, children, rigid) {
+		return {angle:angle, len:len, parent:parent, children:children, rigid:rigid};
 	},
 
 	poseSkeleton:function(skeleton, animation, time) {
@@ -74,11 +74,13 @@ var Skeletons = {
 		}
 	},
 
-	drawSkeleton:function(context, skeleton) {
+	drawSkeleton:function(context, skeleton, imagemap, images) {
 		this.context = context;
 		var bones = skeleton.bones;
-		for (name in bones) {
-			this.drawBone(bones[name]);
+		for (var i = 0; i < imagemap.length; i++) {
+			for (var j = 0; j < imagemap[i].length; j++) {
+				this.drawBone(bones[imagemap[i][j][0]], imagemap[i][j][1], images);
+			}
 		}
 	},
 
@@ -107,15 +109,26 @@ var Skeletons = {
 		context.stroke();
 	},
 
-	//NOTE: Skeletons set its context variable each time it is told to draw the skeleton or wireframe
+	//NOTE: Skeletons sets its context variable each time it is told to draw the skeleton or wireframe
 	//it is absolutely not thread safe, but this is javascript homie
-	drawBone:function(bone) {
-		if (bone.image != null) {
-			if (images[bone.image][0]) {
-				var image = images[bone.image][1];
-				var midpoint = LinAlg.midPoint(bone.coords,bone.endcoords);
-				this.drawImageRotated(image,midpoint[0],midpoint[1],bone.len,bone.len/3,bone.finalangle);
+	drawBone:function(bone, imagemap, images) {
+		//[[image,width,height,anglerelative,offsetangle,offsetamount]*]
+		var midpoint = LinAlg.midPoint(bone.coords,bone.endcoords);
+
+		for (var i = 0; i < imagemap.length; i++) {
+			var iparams = imagemap[i];
+			var image = images[iparams[0]];
+			if (!image[0]) {
+				continue;
 			}
+
+			var coords;
+			if (iparams[5] == 0) {
+				coords = midpoint;
+			} else {
+				coords = LinAlg.pointOffset(midpoint,bone.finalangle+iparams[4], iparams[5]);
+			}
+			this.drawImageRotated(image[1],coords[0],coords[1],iparams[1],iparams[2],bone.finalangle+iparams[3]);
 		}
 	},
 

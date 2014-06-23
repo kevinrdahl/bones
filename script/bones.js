@@ -237,6 +237,7 @@ var copiedFrames = [];
 var boneList = [];
 
 var skeleton = Skeletons.newSkeleton();
+
 Skeletons.addAnimation(skeleton, 'test', 1000);
 
 
@@ -261,7 +262,7 @@ function drawFrame() {
 	}
 
 	Skeletons.poseSkeleton(skeleton,currentAnimation,currentTime);
-	Skeletons.drawSkeleton(context,skeleton);
+	Skeletons.drawSkeleton(context,skeleton,imagemap, images);
 	Skeletons.drawWireframe(context,skeleton,[clickedBone,selectedBone]);
 	
 	window.requestAnimationFrame(drawFrame);
@@ -283,6 +284,11 @@ function updateAnimationList() {
 		}
 		list.add(option);
 	}
+}
+
+function updateImageJSON() {
+	var area = document.getElementById("imagejson");
+	area.value = JSON.stringify(imagemap,null,4);
 }
 
 var BONE_LABEL_WIDTH = 100;
@@ -616,3 +622,13 @@ showBoneInfo();
 updateAnimationList();
 drawFrameTable();
 highlightFrames();
+//layer,bone,params
+var imagemap = [
+	[//layer 1
+		['chest',[['bone.png',100,50,0,0,0]]]
+	],
+	[//layer 2
+		['chest',[['bone.png',100,50,90,0,0]]]
+	]
+];
+updateImageJSON();
