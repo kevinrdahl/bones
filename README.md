@@ -1,3 +1,9 @@
-Intended to be used for 2D sprite rigging in potential browser games.
+###Bones/Skeletons
+2D sprite rigging system and animation tools for use in MMO Online and potential future projects.
 
-Actual rigging and animation is largely complete, but the interface still has a fair bit of work left to do.
+#####To Do:
+* Make image map JSON interactable
+* Save image map
+* Load skeleton, image map
+* Lazy load images (instead of predefined imageList)
+* Add interpolation types (linear, square, logarithmic, sine)
