@@ -16,7 +16,7 @@
 				vertical-align:middle;
 			}
 			#inputdiv {
-				width:300px;
+				width:450px;
 				height:100%;
 				border-right:2px solid black;
 				position:fixed;
@@ -26,7 +26,7 @@
 			}
 			#rightdiv {
 				padding:0;
-				width:calc(100% - 300px);
+				width:calc(100% - 450px);
 				height:100%;
 				overflow-x:hidden;
 				overflow-y:hidden;
@@ -109,7 +109,8 @@
 			
 			<hr>
 			<b>Images</b><br>
-			<textarea id="imagejson"></textarea>
+			<input type="button" value="Update" onClick="UIUpdateImageMap()"><br>
+			<textarea id="imagejson" rows="20" cols="40"></textarea>
 
     	</div>
 

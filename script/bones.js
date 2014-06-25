@@ -286,9 +286,58 @@ function updateAnimationList() {
 	}
 }
 
+/*
+var imagemap = [
+	[//layer 1
+		['chest',[['bone.png',100,50,0,0,0]]]
+	],
+	[//layer 2
+		['chest',[['bone.png',100,50,90,0,0]]]
+	]
+];
+*/
+
 function updateImageJSON() {
 	var area = document.getElementById("imagejson");
-	area.value = JSON.stringify(imagemap,null,4);
+	//area.value = JSON.stringify(imagemap,null,4);
+	
+	area.value = printNestedList(imagemap,1,4);
+
+	//area.value += JSON.stringify(imagemap);
+}
+
+function printNestedList(list, skip, depth, indent) {
+	indent = typeof indent !== 'undefined' ? indent : 0;
+
+	if (skip > 0)
+		indent -= 1;
+
+	if (depth == 0 || typeof list === 'string') {
+		return nChars(indent,' ') + JSON.stringify(list);
+	} else {
+		var str = nChars(indent,' ');
+		if (skip <= 0)
+			str+= '[\n';
+		for (var i = 0; i < list.length; i++) {
+			str += printNestedList(list[i],skip-1,depth-1,indent+1);
+			if (i == list.length-1) {
+				str += '\n';
+			} else {
+				str += ',\n';
+			}
+		}
+		if (skip <= 0)
+			str += nChars(indent,' ') + ']';
+		return str;
+	}
+}
+
+function nChars(n, char) {
+	var str = '';
+	for (var i = 0; i < n; i++) {
+		str += char;
+	}
+	return str;
 }
 
 var BONE_LABEL_WIDTH = 100;
@@ -598,6 +647,21 @@ function UISaveSkeleton() {
 }
 
 function UILoadSkeleton() {
+
+}
+
+function UIUpdateImageMap() {
+	console.log(JSON.stringify(imagemap));
+	var box = document.getElementById('imagejson');
+	try {
+		var json = JSON.parse('['+box.value+']');
+		imagemap = json;
+	} catch(err) {
+		console.log(err);
+		alert('Malformed JSON');
+	}
+	console.log("===");
+	console.log(JSON.stringify(imagemap));
 
 }
 
