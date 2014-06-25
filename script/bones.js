@@ -286,24 +286,9 @@ function updateAnimationList() {
 	}
 }
 
-/*
-var imagemap = [
-	[//layer 1
-		['chest',[['bone.png',100,50,0,0,0]]]
-	],
-	[//layer 2
-		['chest',[['bone.png',100,50,90,0,0]]]
-	]
-];
-*/
-
 function updateImageJSON() {
 	var area = document.getElementById("imagejson");
-	//area.value = JSON.stringify(imagemap,null,4);
-	
 	area.value = printNestedList(imagemap,1,4);
-
-	//area.value += JSON.stringify(imagemap);
 }
 
 function printNestedList(list, skip, depth, indent) {
