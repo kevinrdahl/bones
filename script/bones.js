@@ -654,7 +654,9 @@ function setFrame(frame) {
 	currentTime = frame % skeleton.animations[currentAnimation].duration;
 	document.getElementById('currentframe').value = currentTime;
 	Skeletons.poseSkeleton(skeleton, currentAnimation, currentTime);
-	highlightFrames();
+
+	if (!playAnimation)
+		highlightFrames();
 }
 
 function logDump(what) {
