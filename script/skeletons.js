@@ -15,11 +15,11 @@ var Skeletons = {
 			legright2:this.newBone(85,80,'legright1',['footright'],false),
 			footright:this.newBone(0,20,'legright2',[],false),
 			
-			shoulderleft:this.newBone(160,45,'chest',['armleft1'],false),
+			shoulderleft:this.newBone(-110,45,'chest',['armleft1'],true),
 			armleft1:this.newBone(100,70,'shoulderleft',['armleft2'],false),
 			armleft2:this.newBone(90,65,'armleft1',[],false),
 			
-			shoulderright:this.newBone(20,45,'chest',['armright1'],false),
+			shoulderright:this.newBone(110,45,'chest',['armright1'],true),
 			armright1:this.newBone(80,70,'shoulderright',['armright2'],false),
 			armright2:this.newBone(90,65,'armright1',[],false)
 		};
@@ -62,7 +62,7 @@ var Skeletons = {
 	poseBones:function(skeleton, bone) {
 		var angle = bone.angle+skeleton.angle;
 		if (bone.rigid) {
-			angle += bones[bone.parent].angle;
+			angle += skeleton.bones[bone.parent].finalangle;
 		}
 		bone.finalangle = angle;
 		

@@ -82,12 +82,12 @@
 
 			<hr>
 			<b>Bone</b><br>
-			<div id="boneinfo" class="detail"></div><br>
-			<form name="editform" action="" method="GET">
-				Name: <input type="text" name="newname" value=""><br>
-				<br>
-				<input type="button" value="Update" onClick="editBone(this.form)">
-			</form>
+			Name: <input type="text" id="bonename" value="" onchange="UIBoneProp('name')"><br>
+			Length: <input type="number" id="bonelen" value="" onchange="UIBoneProp('len')"><br>
+			Angle: <input type="number" id="boneangle" value="" onchange="UIBoneProp('angle')"><br>
+			Parent: <input type="text" id="boneparent" value="" onchange="UIBoneProp('parent')"><br>
+			Children: <div id="bonechildren"></div>
+			Rigid: <input type="checkbox" id="bonerigid" value="" onchange="UIBoneProp('rigid')"><br>
 			<br>
 			
 			<hr>

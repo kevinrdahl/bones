@@ -96,7 +96,7 @@ function canvasLeftDown (mouseCoords) {
 			}
 			break;
 	}
-	showBoneInfo();
+	updateBoneInfo();
 }
 
 function canvasLeftUp (mouseCoords) {
@@ -125,7 +125,7 @@ function canvasLeftUp (mouseCoords) {
 	}
 
 	clickedBone = null;
-	showBoneInfo();
+	updateBoneInfo();
 }
 
 function canvasLeftMove (mouseCoords) {
@@ -138,9 +138,18 @@ function canvasLeftMove (mouseCoords) {
 			if (clickedBone == 'origin') {
 				skeleton.angle = LinAlg.pointAngle(skeleton.origin,mouseCoords);
 			} else if (clickedBone != null) {
-				//TODO: set angles intelligently, based on movement of mouse
 				var bone = skeleton.bones[clickedBone];
-				bone.angle = LinAlg.pointAngle(bone.coords,mouseCoords)-skeleton.angle;
+
+				var prevAngle = bone.angle;
+				var newAngle = LinAlg.pointAngle(bone.coords,mouseCoords);
+				
+				var a = newAngle - prevAngle;
+				a = mod2((a + 180) , 360) - 180;
+
+				bone.angle = prevAngle + a;
+				if (bone.rigid) {
+					bone.angle -= skeleton.bones[bone.parent].finalangle;
+				}
 				Skeletons.setFrame(skeleton.animations[currentAnimation][clickedBone]['angle'],currentTime,bone.angle);
 			}
 			break;
@@ -167,7 +176,7 @@ function canvasLeftMove (mouseCoords) {
 				bone.len = LinAlg.pointDist(mouseCoords,bone.coords);
 			}
 	}
-	showBoneInfo();
+	updateBoneInfo();
 }
 
 function frameCanvasLeftDown (mouseCoords) {
@@ -189,7 +198,7 @@ function keyUp(which) {
 	//console.log(which+" up");
 }
 
-function showBoneInfo() {
+function updateBoneInfo() {
 	var name = null;
 	if (selectedBone != null) {
 		name = selectedBone;
@@ -197,27 +206,48 @@ function showBoneInfo() {
 		name = clickedBone;
 	}
 
-	var info = 'none selected';
 	if (name != null) {
 		var bone = skeleton.bones[name];
-		var children = '[';
-		for (var i = 0; i < bone.children.length; i++) {
-			children += bone.children[i];
-			if (i != bone.children.length-1) {
-				children += ', ';
-			}
-		}
-		children += ']';
-		var rigid = (bone.rigid) ? 'yes' : 'no';
-		info = 'name: ' + name + '<br>' +
-				'length: ' + bone.len + '<br>' +
-				'angle: ' + bone.angle + '<br>' +
-				'parent: ' + bone.parent + '<br>' +
-				'children: ' + children + '<br>' +
-				'rigid: ' + rigid + '<br>' +
-				'image: ' + bone.image;
+		document.getElementById('bonename').value = name;
+		document.getElementById('bonelen').value = bone.len;
+		document.getElementById('boneangle').value = bone.angle;
+		document.getElementById('boneparent').value = bone.parent;
+		document.getElementById('bonechildren').innerHTML = JSON.stringify(bone.children);
+		document.getElementById('bonerigid').checked = bone.rigid;
+	} else {
+		document.getElementById('bonename').value = 'none selected';
+		document.getElementById('bonelen').value = -1;
+		document.getElementById('boneangle').value = -1;
+		document.getElementById('boneparent').value = '';
+		document.getElementById('bonechildren').innerHTML = '';
+		document.getElementById('bonerigid').checked = false;
 	}
-	document.getElementById('boneinfo').innerHTML = info;
+}
+
+//not exactly elegant, but sufficient
+function UIBoneProp(prop) {
+	switch (prop) {
+		case "name":
+			var name = document.getElementById('bonename').value;
+			Skeletons.renameBone(skeleton, selectedBone, name);
+			selectedBone = name;
+			break;
+		case "len":
+			var len = Number(document.getElementById('bonelen').value);
+			skeleton.bones[selectedBone].len = len;
+			break;
+		case "angle":
+			var angle = Number(document.getElementById('boneangle').value);
+			Skeletons.setFrame(skeleton.animations[currentAnimation][selectedBone]['angle'],currentTime,angle);
+			break;
+		case "parent":
+			var parent = document.getElementById('boneparent').value;
+			Skeletons.setBoneParent(skeleton,selectedBone,parent);
+			break;
+		case "rigid":
+			var rigid = document.getElementById('bonerigid').checked;
+			skeleton.bones[selectedBone].rigid = rigid;
+	}
 }
 
 /*=======
@@ -247,7 +277,7 @@ function setTool(which) {
 	tool = which;
 
 	console.log(which);
-	showBoneInfo();
+	updateBoneInfo();
 }
 
 function drawFrame() {
@@ -547,7 +577,7 @@ function UISetAnimation(list) {
 }
 
 function UISetFrame(field) {
-	setFrame(field.value);
+	setFrame(parseInt(field.value));
 	editFrame = field.value;
 }
 
@@ -659,6 +689,10 @@ function setFrame(frame) {
 		highlightFrames();
 }
 
+function mod2(x,y) {
+	return (x % y + y) % y;
+}
+
 function logDump(what) {
 	console.log(what);
 	console.log(JSON.stringify(eval(what),null,4));
@@ -669,7 +703,6 @@ function logDump(what) {
 //	INIT
 //============
 loadImages();
-showBoneInfo();
 updateAnimationList();
 drawFrameTable();
 highlightFrames();
@@ -683,3 +716,4 @@ var imagemap = [
 	]
 ];
 updateImageJSON();
+updateBoneInfo();
