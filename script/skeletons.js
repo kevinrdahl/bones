@@ -1,7 +1,9 @@
 var Skeletons = {
 	animatedProperties:['angle'],
 	newSkeleton:function() {
-		var origin = [300,250];
+		var origin = [300,450];
+		var originOffset = [0,-155];
+		var scale = 1;
 		var angle = 0;
 		var bones = {
 			chest:this.newBone(270,150,'origin',['head','shoulderleft','shoulderright'],false),
@@ -33,7 +35,7 @@ var Skeletons = {
 			animations['none'][name] = {angle:[[0, bone.angle]]};
 		}
 
-		return {origin:origin, angle:angle, bones:bones, animations:animations, images:images};
+		return {origin:origin, originOffset:originOffset, angle:angle, scale:scale, bones:bones, animations:animations, images:images};
 	},
 
 	newBone:function(angle, len, parent, children, rigid) {
@@ -53,7 +55,7 @@ var Skeletons = {
 
 		for (name in bones) {
 			if (bones[name].parent == 'origin') {
-				bones[name].coords = skeleton.origin;
+				bones[name].coords = LinAlg.vectorSum(skeleton.origin, LinAlg.vectorScaled(skeleton.originOffset, skeleton.scale));
 				this.poseBones(skeleton,bones[name]);
 			}
 		}
@@ -66,7 +68,7 @@ var Skeletons = {
 		}
 		bone.finalangle = angle;
 		
-		bone.endcoords = LinAlg.pointOffset(bone.coords, angle, bone.len);
+		bone.endcoords = LinAlg.pointOffset(bone.coords, angle, bone.len*skeleton.scale);
 		for (var i = 0; i < bone.children.length; i++) {
 			var child = skeleton.bones[bone.children[i]];
 			child.coords = bone.endcoords;
@@ -88,7 +90,7 @@ var Skeletons = {
 		this.context = context;
 		var bones = skeleton.bones;
 
-		context.lineWidth = 3;
+		context.lineWidth = Math.ceil(3*skeleton.scale);
 		context.strokeStyle = "#000000";
 		for (name in bones) {
 			if (name in highlights)
@@ -104,7 +106,14 @@ var Skeletons = {
 
 		//origin
 		context.strokeStyle = '#FF0000';
-		context.beginPath()	
+		context.beginPath();
+		var coords = LinAlg.vectorSum(skeleton.origin, LinAlg.vectorScaled(skeleton.originOffset,skeleton.scale));
+		context.arc(coords[0], coords[1], 3, 0, 2*Math.PI);
+		context.stroke();
+		
+		//position
+		context.strokeStyle = '#0000FF';
+		context.beginPath();
 		context.arc(skeleton.origin[0], skeleton.origin[1], 3, 0, 2*Math.PI);
 		context.stroke();
 	},
@@ -128,7 +137,7 @@ var Skeletons = {
 			} else {
 				coords = LinAlg.pointOffset(midpoint,bone.finalangle+iparams[4], iparams[5]);
 			}
-			this.drawImageRotated(image[1],coords[0],coords[1],iparams[1],iparams[2],bone.finalangle+iparams[3]);
+			this.drawImageRotated(image[1],coords[0],coords[1],iparams[1]*skeleton.scale,iparams[2]*skeleton.scale,bone.finalangle+iparams[3]);
 		}
 	},
 
