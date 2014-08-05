@@ -42,7 +42,9 @@ var Skeletons = {
 		return {angle:angle, len:len, parent:parent, children:children, rigid:rigid};
 	},
 
-	poseSkeleton:function(skeleton, animation, time) {
+	poseSkeleton:function(skeleton, animation, time, mirror) {
+		mirror = (typeof mirror === 'undefined') ? false : mirror;
+		time = time % skeleton.animations[animation].duration;
 		animation = skeleton.animations[animation];
 		var bones = skeleton.bones;
 
@@ -56,7 +58,15 @@ var Skeletons = {
 		for (name in bones) {
 			if (bones[name].parent == 'origin') {
 				bones[name].coords = LinAlg.vectorSum(skeleton.origin, LinAlg.vectorScaled(skeleton.originOffset, skeleton.scale));
-				this.poseBones(skeleton,bones[name]);
+				this.poseBones(skeleton,bones[name], mirror);
+			}
+		}
+		
+		if (mirror) {
+			for (name in bones) {
+				var bone = bones[name];
+				bone.coords = LinAlg.vectorFlipY(bone.coords, skeleton.origin[0]);
+				bone.endcoords = LinAlg.vectorFlipY(bone.endcoords, skeleton.origin[0]);
 			}
 		}
 	},
@@ -76,12 +86,13 @@ var Skeletons = {
 		}
 	},
 
-	drawSkeleton:function(context, skeleton, imagemap, images) {
+	drawSkeleton:function(context, skeleton, imagemap, images, mirror) {
+		mirror = (typeof mirror === 'undefined') ? false : mirror;
 		this.context = context;
 		var bones = skeleton.bones;
 		for (var i = 0; i < imagemap.length; i++) {
 			for (var j = 0; j < imagemap[i].length; j++) {
-				this.drawBone(bones[imagemap[i][j][0]], imagemap[i][j][1], images);
+				this.drawBone(bones[imagemap[i][j][0]], imagemap[i][j][1], images, mirror);
 			}
 		}
 	},
@@ -120,16 +131,16 @@ var Skeletons = {
 
 	//NOTE: Skeletons sets its context variable each time it is told to draw the skeleton or wireframe
 	//it is absolutely not thread safe, but this is javascript homie
-	drawBone:function(bone, imagemap, images) {
+	drawBone:function(bone, imagemap, images, mirror) {
 		//[[image,width,height,anglerelative,offsetangle,offsetamount]*]
 		var midpoint = LinAlg.midPoint(bone.coords,bone.endcoords);
 
 		for (var i = 0; i < imagemap.length; i++) {
 			var iparams = imagemap[i];
 			var image = images[iparams[0]];
-			if (!image[0]) {
+			/*if (!image[0]) {
 				continue;
-			}
+			}*/
 
 			var coords;
 			if (iparams[5] == 0) {
@@ -137,7 +148,16 @@ var Skeletons = {
 			} else {
 				coords = LinAlg.pointOffset(midpoint,bone.finalangle+iparams[4], iparams[5]);
 			}
-			this.drawImageRotated(image[1],coords[0],coords[1],iparams[1]*skeleton.scale,iparams[2]*skeleton.scale,bone.finalangle+iparams[3]);
+			
+			if (mirror) {
+				context.save();
+				context.translate(midpoint[0]*2, 0);
+				context.scale(-1,1);
+			}
+			this.drawImageRotated(image,coords[0],coords[1],iparams[1]*skeleton.scale,iparams[2]*skeleton.scale,bone.finalangle+iparams[3]);
+			if (mirror) {
+				context.restore();
+			}
 		}
 	},
 
