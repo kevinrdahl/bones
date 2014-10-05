@@ -1,9 +1,3 @@
-/*
-
-TODO: Devise dirty hack to make this work with performant version
-
-*/
-
 var Skeletons = {
 	animatedProperties:['angle'],
 	newSkeleton:function() {
@@ -47,103 +41,32 @@ var Skeletons = {
 	newBone:function(angle, len, parent, children, rigid) {
 		return {angle:angle, len:len, parent:parent, children:children, rigid:rigid};
 	},
-	
-	//fast*
-	fastSkeleton:function(skeleton) {
-		var bones1 = skeleton.bones;
-		var bones2 = [];
-		var boneMap = {};
-		
-		var i = 0;
-		for (name in bones1) {
-			boneMap[name] = i++;
-		}
-		
-		for (name in bones1) {
-			var bone1 = bones1[name];
-			var bone2 = this.deepCopy(bone1);
-			bone2.parent = (bone1.parent == 'origin') ? -1 : boneMap[bone1.parent];
-			bone2.children = [];
-			for (var j = 0; j < bone1.children.length; j++) {
-				bone2.children.push(boneMap[bone1.children[j]]);
-			}
-			bones2.push(bone2);
-		}
-		
-		var anims1 = skeleton.animations;
-		var anims2 = {};
-		
-		for (animname in anims1) {
-			anims2[animname] = {duration:anims1[animname].duration, bones:[]};
-			for (bonename in anims1[animname]) {
-				var boneanims = anims1[animname][bonename];
-				anims2[animname].bones[boneMap[bonename]] = this.deepCopy(boneanims);
-			}
-		}
-		
-		var skeleton2 = {};
-		for (prop in skeleton) {
-			if (typeof skeleton[prop] !== 'object') {
-				skeleton2[prop] = skeleton[prop];
-			}
-		}
-		skeleton2.bones = bones2;
-		skeleton2.boneMap = boneMap;
-		skeleton2.animations = anims2;
-		skeleton2.origin = skeleton.origin;
-		skeleton2.originOffset = skeleton.originOffset;
-		return skeleton2;
-	},
-	
-	//Another dirty string-based function
-	fastImageMap:function(imageMap, skeleton) {
-		var boneMap = skeleton.boneMap;
-		var str = JSON.stringify(imageMap);
-		
-		for (name in boneMap) {
-			var strsplit = str.split('"'+name+'"');
-			if (strsplit.length == 1) {
-				continue;
-			}
-			str = '';
-			for (var i = 0; i < strsplit.length-1; i++) {
-				str += strsplit[i] + boneMap[name].toString();
-			}
-			str += strsplit[strsplit.length-1];
-		}
-		
-		return JSON.parse(str);
-	},
-	
-	//SLLLLOOOOWWWWWW
-	deepCopy:function(obj) {
-		return JSON.parse(JSON.stringify(obj));
-	},
 
 	poseSkeleton:function(skeleton, animation, time, mirror) {
 		mirror = (typeof mirror === 'undefined') ? false : mirror;
 		time = time % skeleton.animations[animation].duration;
 		animation = skeleton.animations[animation];
 		var bones = skeleton.bones;
-		
-		for (var i = 0; i < bones.length; i++) {
-			for (prop in animation.bones[i]) {
-				bones[i][prop] = this.getFrame(animation.bones[i][prop], time);
+
+		for (name in bones) {
+			var bone = bones[name];
+			for (prop in animation[name]) {
+				bone[prop] = this.getFrame(animation[name][prop], time);
 			}
 		}
-		
-		for (var i = 0; i < bones.length; i++) {
-			if (bones[i].parent == -1) {
-				//parented to origin
-				bones[i].coords = LinAlg.vectorSum(skeleton.origin, LinAlg.vectorScaled(skeleton.originOffset, skeleton.scale));
-				this.poseBones(skeleton, bones[i], mirror);
+
+		for (name in bones) {
+			if (bones[name].parent == 'origin') {
+				bones[name].coords = LinAlg.vectorSum(skeleton.origin, LinAlg.vectorScaled(skeleton.originOffset, skeleton.scale));
+				this.poseBones(skeleton,bones[name], mirror);
 			}
 		}
 		
 		if (mirror) {
-			for (var i = 0; i < bones.length; i++) {
-				bones[i].coords = LinAlg.vectorFlipY(bones[i].coords, skeleton.origin[0]);
-				bones[i].endcoords = LinAlg.vectorFlipY(bones[i].endcoords, skeleton.origin[0]);
+			for (name in bones) {
+				var bone = bones[name];
+				bone.coords = LinAlg.vectorFlipY(bone.coords, skeleton.origin[0]);
+				bone.endcoords = LinAlg.vectorFlipY(bone.endcoords, skeleton.origin[0]);
 			}
 		}
 	},
@@ -169,28 +92,22 @@ var Skeletons = {
 		var bones = skeleton.bones;
 		for (var i = 0; i < imagemap.length; i++) {
 			for (var j = 0; j < imagemap[i].length; j++) {
-				//TODO: make fastImageMap
-				var boneIndex = imagemap[i][j][0];
-				this.drawBone(bones[boneIndex], imagemap[i][j][1], images, mirror);
+				this.drawBone(bones[imagemap[i][j][0]], imagemap[i][j][1], images, mirror);
 			}
 		}
 	},
 
-	//TODO: highlights should be indeces, not names
 	drawWireframe:function(context, skeleton, highlights) {
 		this.context = context;
 		var bones = skeleton.bones;
 
 		context.lineWidth = Math.ceil(3*skeleton.scale);
 		context.strokeStyle = "#000000";
-		
-		for (var i = 0; i < bones.length; i++) {
-			if (highlights.indexOf(i) != -1) {
-				continue;
-			}
-			this.drawWire(bones[i]);
+		for (name in bones) {
+			if (name in highlights)
+				continue
+			this.drawWire(bones[name]);
 		}
-		
 		context.strokeStyle = "#00FF00";
 		for (var i = 0; i < highlights.length; i++) {
 			if (highlights[i] == null || highlights[i] == 'origin')
@@ -245,10 +162,6 @@ var Skeletons = {
 	},
 
 	drawWire:function(bone) {
-		if (typeof bone === 'undefined') {
-			return 1;
-		}
-	
 		var context = this.context;
 		context.beginPath();
 		context.moveTo(bone.coords[0], bone.coords[1]);
@@ -258,7 +171,6 @@ var Skeletons = {
 		context.beginPath();
 		context.arc(bone.endcoords[0], bone.endcoords[1], 3, 0, 2*Math.PI);
 		context.stroke();
-		return 0;
 	},
 
 	//angle is degrees

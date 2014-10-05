@@ -23,7 +23,7 @@ var TICK_LEN = 33;
 
 function imageLoaded () {
 	var str = this.src.substring(imgPrefix.length);
-	images[str][0] = true;
+	images[str] = this;
 	numLoaded++;
 	if (numLoaded == imageList.length) {
 		loadComplete();
@@ -35,7 +35,7 @@ function loadImages() {
 	for (var i = 0; i < imageList.length; i++) {
 		var image = new Image();
 		image.onload = imageLoaded;
-		images[imageList[i]] = [false, image];
+		images[imageList[i]] = null;
 		image.src = imgPrefix + imageList[i];
 	}
 }
@@ -93,6 +93,7 @@ function canvasLeftDown (mouseCoords) {
 				}
 				Skeletons.addBoneAnimations(skeleton,name);
 				clickedBone = name;
+				skeleton2 = Skeletons.fastSkeleton(skeleton);
 			}
 			break;
 	}
@@ -126,6 +127,7 @@ function canvasLeftUp (mouseCoords) {
 
 	clickedBone = null;
 	updateBoneInfo();
+	skeleton2 = Skeletons.fastSkeleton(skeleton);
 }
 
 function canvasLeftMove (mouseCoords) {
@@ -177,6 +179,7 @@ function canvasLeftMove (mouseCoords) {
 			}
 	}
 	updateBoneInfo();
+	skeleton2 = Skeletons.fastSkeleton(skeleton);
 }
 
 function frameCanvasLeftDown (mouseCoords) {
@@ -248,6 +251,7 @@ function UIBoneProp(prop) {
 			var rigid = document.getElementById('bonerigid').checked;
 			skeleton.bones[selectedBone].rigid = rigid;
 	}
+	skeleton2 = Skeletons.fastSkeleton(skeleton);
 }
 
 /*=======
@@ -267,8 +271,8 @@ var copiedFrames = [];
 var boneList = [];
 
 var skeleton = Skeletons.newSkeleton();
-
 Skeletons.addAnimation(skeleton, 'test', 1000);
+var skeleton2 = Skeletons.fastSkeleton(skeleton);
 
 
 function setTool(which) {
@@ -291,11 +295,28 @@ function drawFrame() {
 		setFrame(currentTime+timedelta);
 	}
 
-	Skeletons.poseSkeleton(skeleton,currentAnimation,currentTime);
-	Skeletons.drawSkeleton(context,skeleton,imagemap, images);
-	Skeletons.drawWireframe(context,skeleton,[clickedBone,selectedBone]);
+	Skeletons.poseSkeleton(skeleton2,currentAnimation,currentTime);
+	poseSlowSkeleton(skeleton2, skeleton);
+	Skeletons.drawSkeleton(context,skeleton2,imagemap2, images);
+	Skeletons.drawWireframe(context,skeleton2,[skeleton2.boneMap[clickedBone],skeleton2.boneMap[selectedBone]]);
 	
 	window.requestAnimationFrame(drawFrame);
+}
+
+//for UI purposes
+function poseSlowSkeleton(fast, slow) {
+	for (boneName in slow.bones) {
+		var index = fast.boneMap[boneName];
+		var fastBone = fast.bones[index];
+		var slowBone = slow.bones[boneName];
+		
+		for (prop in Skeletons.animatedProperties) {
+			slowBone[prop] = fastBone[prop];
+		}
+		slowBone['coords'] = fastBone['coords'];
+		slowBone['endcoords'] = fastBone['endcoords'];
+		slowBone['finalangle'] = fastBone['finalangle'];
+	}
 }
 
 function updateAnimationList() {
@@ -499,8 +520,6 @@ function UICopyFrames() {
 		value = Skeletons.getFrame(keyframes, time);
 		copiedFrames.push([name, time, value]);
 	}
-
-	console.log(JSON.stringify(copiedFrames));
 }
 
 function UICutFrames() {
@@ -666,18 +685,15 @@ function UILoadSkeleton() {
 }
 
 function UIUpdateImageMap() {
-	console.log(JSON.stringify(imagemap));
 	var box = document.getElementById('imagejson');
 	try {
 		var json = JSON.parse('['+box.value+']');
 		imagemap = json;
+		imagemap2 = Skeletons.fastImageMap(imagemap,skeleton2);
 	} catch(err) {
 		console.log(err);
 		alert('Malformed JSON');
 	}
-	console.log("===");
-	console.log(JSON.stringify(imagemap));
-
 }
 
 function setFrame(frame) {
@@ -715,5 +731,6 @@ var imagemap = [
 		['chest',[['bone.png',100,50,90,0,0]]]
 	]
 ];
+var imagemap2 = Skeletons.fastImageMap(imagemap, skeleton2);
 updateImageJSON();
 updateBoneInfo();
